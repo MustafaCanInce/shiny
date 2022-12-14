@@ -67,44 +67,22 @@ ui <- fluidPage(
         icon=NULL, inputId="undo_Button", width=160, label="Undo")),
           top=800, height=200, left='167vh', width=200),
   
-  #Image Table Output
-  #absolutePanel(wellPanel(dataTableOutput(outputId="image_table_Output")), top=150, height=300, left=25, width=975),
-  #titlePanel("Reliability"),
-  
-  
-  
-  
-  
-  #tags$img(src = "https://www.pngfind.com/pngs/m/461-4619276_hello-lettering-hd-png-download.png",
-   #        style = 'position: relative; opacity: 1;')
 
-  
-  
-  
-  
-  
-  
   )
   
 
 server <- function(input, output, session) {
+  po <- matrix( nrow = 0, ncol = 3)
+  point <- data.frame(po)
+ 
+  colnames(point) <- c("id","x","y")
+  
   observeEvent(input$clear_button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
   })
   
-  #observeEvent(input$clear_button, {
-    #xy_str <- NULL
-    #xy_range_str <- NULL
-    #shinyjs::reset("paste0")
-    #shinyjs::hide("paste0")
-  #})
-  
-  #observeEvent(input$clear_button,{
-  #output$xy_range_str <- NULL
-  #  show("plot")
-  # })
-  
+
   observeEvent(input$undo_Button, {
     if (length(xy_new$x) > 0) {
       xy_new$x <- xy_new$x[1:(length(xy_new$x)-1)]
@@ -112,10 +90,12 @@ server <- function(input, output, session) {
     }
   })
   
+  observeEvent(input$next_Button, {
+      write.csv(point,"deneme.csv")
+  })
   
   
 
-  
   # By default, Shiny limits file uploads to 5MB per file.
   # modify this limit by using the shiny.maxRequestSize option. 
   # For example, adding options(shiny.maxRequestSize=30*1024^2) to the top of server.R would increase the limit to 30MB.
@@ -124,8 +104,6 @@ server <- function(input, output, session) {
   
   
   xy_new <- reactiveValues(x= numeric(0), y = numeric(0), line=numeric(0)) # add new points
-  
-  
   
   
   output$plot.ui <- renderUI({
@@ -166,37 +144,14 @@ server <- function(input, output, session) {
   observe({
     cat(input$GetScreenWidth)
   })
+
   
-  #pointsforplot <- eventReactive(input$clear, ignoreNULL = F,{
-  #  tibble(x = NULL, y = NULL)
-  #})
-  
-  # Get the click values on button click
-  #pointsforplot <- eventReactive(input$plotpoints, ignoreNULL = F, {
-  
-  # tibble(x = xy_new$x, y = xy_new$y)
-  
-  #})
-  
-  
-  #eventReactive for upload photo action button
-  #upload_image <- eventReactive(input$upload_Button,{
-    
-    #to load the image
-    #ima <- readJPEG("C:/coordinates/bone.jpg")
-    
-    #take plot info and set background photo
-    #lim <- par()
-    #rasterImage(ima, lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4])
-  #})
-  
-  xxyy 
+
+
   
   output$distplot <- renderPlot({
     
-    xxyy <<- list(input$plot_click$x,input$plot_click$y)
-    #xxyy <- list (as.integer(round(e$x,2)),as.integer(round(e$y,2)))
-    #print(xxyy[length(xxyy)])
+
    
     
     
@@ -209,7 +164,9 @@ server <- function(input, output, session) {
     fileName  <- file("coord.txt")
     imageName <- basename("C:/coordinates/bone.jpg")
     
-    coordinates <<- c(as.character(xy_new$x),"\n",as.character(xy_new$y),"\n")
+    coordinates <<- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
+    point <- rbind(point, coordinates)
+    
     writeLines(c(imageName, length(xy_new$x), coordinates),fileName)
     close(fileName)
     
@@ -217,7 +174,7 @@ server <- function(input, output, session) {
     ima <- img
     
     #pointsforplot()
-    plot(coord$x, coord$y, xlim=c(-600, 600), ylim=c(-600, 600), xlab="X", ylab="Y")
+    plot(coord$x, coord$y, xlim=c(-1920, 1920), ylim=c(-1080, 1080), xlab="X", ylab="Y")
     
     
     #uploads <- upload_image()
@@ -249,11 +206,8 @@ server <- function(input, output, session) {
     })
     
   })
-  #print(coordinates)
-  #print(xxyy[0])
-  #print(xxyy[1])
-  #print(xxyy[2])
-  #print(xxyy[3])
+
+  
   output$info <- renderText({
     xy_str <- function(e) {
       if(is.null(e)) return("NULL\n")
@@ -273,25 +227,7 @@ server <- function(input, output, session) {
       
       
     }
-    #
-    #xxyy[!unlist(lapply(xxyy,is.null))],
-    
-    #new_list=list[-which(is.null(xxyy[]))]
-    
-    #paste(str1,str2)
-    
-    
-    #print(Filter(Negate(is.null), xxyy))
-    #print("sa")
-    #print(xxyy)
-    
-    
-    
-    #for (x in 1:5) {
-    #  print("x" =x)
-    #  print( xxyy[x])
-    #}
-    #"x: " ,xxyy[0], " y: " ,xxyy[1],"\n",
+
     
     paste0(
       
