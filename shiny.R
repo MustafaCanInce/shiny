@@ -5,7 +5,7 @@ library(shinyWidgets)
 library(ggimage)
 library(ggplot2)
 library(png)
-library(ggpubr)
+library(shinyjs)
 
 ui <- fluidPage(
   
@@ -16,6 +16,7 @@ ui <- fluidPage(
                  
                  verbatimTextOutput("info"),
                  actionButton("clear_button", label = "Clear Points"),
+                 
                  #hover = hoverOpts(id = "plot_hover", delayType = "throttle"),
                  #setBackgroundImage(file("C:/coordinates/bone.jpg"))
                  #hover = hoverOpts(
@@ -75,6 +76,16 @@ server <- function(input, output, session) {
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
  
+  
+  
+  
+  observeEvent(input$done_Button, {
+    write_csv(points_df, "points.csv")
+    # Display a temporary message
+    showNotification("The points you marked are saved in the points.csv file.")
+    #invalidateLater(500)
+  })
+  
   colnames(point) <- c("id","x","y")
   
 
@@ -88,22 +99,15 @@ server <- function(input, output, session) {
   #  # write a null value as an x-y coordinate to the TPS file
   #  write.table(data.frame(x=NA, y=NA), "deneme.tps", sep="\t", row.names=FALSE, col.names=FALSE, append=TRUE)
   #})
-  x <- 1
+  
   observeEvent(input$missing_Button, {
+    xy_new$x <- c(xy_new$x, NA)
+    xy_new$y <- c(xy_new$y, NA)
     
-    conn <- file("coord.txt",open="r")
-    linn <-readLines(conn)
-    lineeee <- as.integer(linn[2]) + x
-    
-    write(paste("\n",lineeee,"NULL"),file="coord.txt",append=TRUE)
-    close(conn)
-    x <<- inc(x)
     
   })
 
-  observeEvent(input$next_Button, {
-      write.csv(point,"deneme.csv")
-  })
+
   
   
 
@@ -115,6 +119,7 @@ server <- function(input, output, session) {
   
   
   xy_new <- reactiveValues(x= numeric(0), y = numeric(0), line=numeric(0)) # add new points
+  
   
   
   output$plot.ui <- renderUI({
@@ -143,7 +148,7 @@ server <- function(input, output, session) {
     })
     }
   })
-
+  
 
   # Get the click values on button click
   pointsforplot <- eventReactive(input$plot_click, ignoreNULL = F, {
@@ -155,18 +160,18 @@ server <- function(input, output, session) {
   output$distplot <- renderPlot({
     
     # Will update on button click, refreshing the plot
-    coord <- pointsforplot()
+    coord <- tibble(x = xy_new$x, y = xy_new$y)
     #to save the coordinates of the dots
-    img <- readPNG("1920x1080.png")  # read the image file
+    img <- readPNG("Adsız.png",)  # read the image file
     r <- dim(img)[1]  # get the number of rows in the image
     c <- dim(img)[2]  # get the number of columns in the image
-    
+    points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <<- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
     
     plot(coord$x, coord$y, xlim=c(0, dim(img)[1]), ylim=c(dim(img)[2],0), xlab="X", ylab="Y",xaxt = "n")
     axis(3)
-    rasterImage(img, 0, 0, c, r)  # add the image as the background of the plot
+    rasterImage(img, -25, 2000, 1000, -25)  # add the image as the background of the plot
     points(coord$x, coord$y, col=c("red", "blue", "green"))  # add the points to the plot
     
     
