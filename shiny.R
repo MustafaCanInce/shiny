@@ -2,9 +2,10 @@ library(shiny);
 library(tidyverse)
 library(jpeg)
 library(shinyWidgets)
-
-
-
+library(ggimage)
+library(ggplot2)
+library(png)
+library(ggpubr)
 
 ui <- fluidPage(
   
@@ -23,7 +24,6 @@ ui <- fluidPage(
                  #  delayType = "throttle"
                  #),
     ),
-    
     mainPanel(
       #tabsetPanel(
       #  tabPanel("Plot", plotOutput("plot")),
@@ -38,49 +38,44 @@ ui <- fluidPage(
     wellPanel(
       actionButton(icon=NULL, inputId="upload_Button ", width=160, label="Upload Photo")),
         top=200, height=200, left='167vh', width=200),
-  
   # Next Image Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="next_Button"   , width=160, label="Next Image")),
           top=350, height=200, left='167vh', width=200),
-  
   # Previous Image Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="prev_Button"   , width=160, label="Previous Image")),
           top=500, height=200, left='167vh', width=200),
-  
   # Missing Point Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="missing_Button", width=160, label="Missing point")),
           top=650, height=200, left='167vh', width=200),
-  
   # Undo Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="undo_Button", width=160, label="Undo")),
           top=800, height=200, left='167vh', width=200),
-  
 
-  )
+  # Done Button
+  absolutePanel(
+    wellPanel(
+      actionButton(
+        icon=NULL, inputId="done_Button", width=160, label="Done")),
+          top=950, height=200, left='167vh', width=200)
+)
   
-
 server <- function(input, output, session) {
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
  
   colnames(point) <- c("id","x","y")
-  
-  observeEvent(input$clear_button, {
-    xy_new$x <- numeric(0)
-    xy_new$y <- numeric(0)
-  })
   
 
   observeEvent(input$undo_Button, {
@@ -89,7 +84,23 @@ server <- function(input, output, session) {
       xy_new$y <- xy_new$y[1:(length(xy_new$y)-1)]
     }
   })
-  
+  #observeEvent(input$add_null_button, {
+  #  # write a null value as an x-y coordinate to the TPS file
+  #  write.table(data.frame(x=NA, y=NA), "deneme.tps", sep="\t", row.names=FALSE, col.names=FALSE, append=TRUE)
+  #})
+  x <- 1
+  observeEvent(input$missing_Button, {
+    
+    conn <- file("coord.txt",open="r")
+    linn <-readLines(conn)
+    lineeee <- as.integer(linn[2]) + x
+    
+    write(paste("\n",lineeee,"NULL"),file="coord.txt",append=TRUE)
+    close(conn)
+    x <<- inc(x)
+    
+  })
+
   observeEvent(input$next_Button, {
       write.csv(point,"deneme.csv")
   })
@@ -109,19 +120,16 @@ server <- function(input, output, session) {
   output$plot.ui <- renderUI({
     plotOutput("distplot",
                click = "plot_click",
-               dblclick = "plot_dblclick",
-               
-               
                height = "80vh",
                width = "160vh",
+               #dblclick = "plot_dblclick",
                #dblclick is not shown as a point in plot
                #hover = "plot_hover",
                #brush = "plot_brush",
                #str(input$plot_hover)
+               
     )
   })
-  
-  
   
   # Listen for clicks and store values
   observe({
@@ -132,90 +140,46 @@ server <- function(input, output, session) {
       isolate({
         xy_new$x <- c(xy_new$x, input$plot_click$x)
         xy_new$y <- c(xy_new$y, input$plot_click$y)
-      
-      
-        
-    
     })
     }
   })
-  
-  #get screen resolution.
-  observe({
-    cat(input$GetScreenWidth)
+
+
+  # Get the click values on button click
+  pointsforplot <- eventReactive(input$plot_click, ignoreNULL = F, {
+    
+    tibble(x = xy_new$x, y = xy_new$y)
+    
   })
 
-  
-
-
-  
   output$distplot <- renderPlot({
     
-
-   
-    
-    
     # Will update on button click, refreshing the plot
-    coord <- tibble(x = xy_new$x, y = xy_new$y)
-    #to load the image
-    img <- readJPEG("C:/coordinates/bone.jpg")
-    
+    coord <- pointsforplot()
     #to save the coordinates of the dots
-    fileName  <- file("coord.txt")
-    imageName <- basename("C:/coordinates/bone.jpg")
+    img <- readPNG("1920x1080.png")  # read the image file
+    r <- dim(img)[1]  # get the number of rows in the image
+    c <- dim(img)[2]  # get the number of columns in the image
     
     coordinates <<- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
     
-    writeLines(c(imageName, length(xy_new$x), coordinates),fileName)
-    close(fileName)
+    plot(coord$x, coord$y, xlim=c(0, dim(img)[1]), ylim=c(dim(img)[2],0), xlab="X", ylab="Y",xaxt = "n")
+    axis(3)
+    rasterImage(img, 0, 0, c, r)  # add the image as the background of the plot
+    points(coord$x, coord$y, col=c("red", "blue", "green"))  # add the points to the plot
     
-    #to load the image
-    ima <- img
-    
-    #pointsforplot()
-    plot(coord$x, coord$y, xlim=c(-1920, 1920), ylim=c(-1080, 1080), xlab="X", ylab="Y")
-    
-    
-    #uploads <- upload_image()
-    
-    #take plot info and set background photo
-    lim <- par()
-    #rasterImage(ima, lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4])s
-    
-    
-    
-    
-    inc <- function(x)
-    {
-      eval.parent(substitute(x <- x + 1))
-    }
-    
-    x <- 1
-    observeEvent(input$missing_Button, {
-      
-      
-      conn <- file("coord.txt",open="r")
-      linn <-readLines(conn)
-      lineeee <- as.integer(linn[2]) + x
-     
-      write(paste("\n",lineeee,"NULL"),file="coord.txt",append=TRUE)
-      close(conn)
-      x <<- inc(x)
-      
-    })
     
   })
-
+  observeEvent(input$clear_button, {
+    xy_new$x <- numeric(0)
+    xy_new$y <- numeric(0)
+  })
   
   output$info <- renderText({
     xy_str <- function(e) {
       if(is.null(e)) return("NULL\n")
       paste0("x=", round(e$x, 2), " y=", round(e$y, 2), "\n")
-      
-      
-      
-      
     }
    
     xy_range_str <- function(e) {
@@ -224,31 +188,12 @@ server <- function(input, output, session) {
              " ymin="  , round(e$ymin, 2),           " ymax=", round(e$ymax, 2),
              " xrange=", round(e$xmax-e$xmin, 2),    " yrange=", round(e$ymax-e$ymin,2),
              " diag="  , round(sqrt((e$xmax-e$xmin)^2+(e$ymax-e$ymin)^2)))
-      
-      
     }
 
-    
     paste0(
-      
-      mylist <- xy_str(input$plot_click),
-      for(x in length(mylist)){
-        Filter(Negate(is.null),mylist)
-      },
-      
-      
-        "click: "       , mylist[1],"\n",
-      #print(xy_str(input$plot_click)),
-      
-      
-      
-      "double_click: ", xy_str(input$plot_dblclick)
-      #"hover: "       ,cat("Hover (throttled):\n")
-      #"brush: ", xy_range_str(input$plot_brush)
+        "click: ", round(xy_new$x[length(xy_new$x)],2)," ",round(xy_new$y[length(xy_new$y)],2)
     )
   })
 }
-# Run in a dialog within R Studio
-# runGadget(ui, server, viewer = dialogViewer("Dialog Title", width = 1200, height = 600))
-# runGadget(ui, server, viewer = browserViewer(browser = getOption("browser")))
+
 shinyApp(ui=ui, server=server)
