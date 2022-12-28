@@ -38,41 +38,47 @@ ui <- fluidPage(
   absolutePanel(
     wellPanel(
       actionButton(icon=NULL, inputId="upload_Button ", width=160, label="Upload Photo")),
-        top=200, height=200, left='167vh', width=200),
+    top=200, height=200, left='167vh', width=200),
   # Next Image Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="next_Button"   , width=160, label="Next Image")),
-          top=350, height=200, left='167vh', width=200),
+    top=300, height=200, left='167vh', width=200),
   # Previous Image Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="prev_Button"   , width=160, label="Previous Image")),
-          top=500, height=200, left='167vh', width=200),
+    top=400, height=200, left='167vh', width=200),
   # Missing Point Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="missing_Button", width=160, label="Missing point")),
-          top=650, height=200, left='167vh', width=200),
+    top=500, height=200, left='167vh', width=200),
   # Undo Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="undo_Button", width=160, label="Undo")),
-          top=800, height=200, left='167vh', width=200),
-
+    top=600, height=200, left='167vh', width=200),
+  #Scale Button
+  absolutePanel(
+    wellPanel(
+      actionButton(
+        icon=NULL, inputId="scale_Button"   , width=160, label="Scale")),
+    top=700, height=200, left='167vh', width=200),
   # Done Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="done_Button", width=160, label="Done")),
-          top=950, height=200, left='167vh', width=200)
+    top=800, height=200, left='167vh', width=200),
 )
   
 server <- function(input, output, session) {
+  points <- reactiveValues(x = numeric(), y = numeric())
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
  
@@ -106,6 +112,19 @@ server <- function(input, output, session) {
     
     
   })
+  
+  observeEvent(input$scale_Button, {
+    # Get the minimum and maximum x values from the brush
+    x_range <- c(input$plot_brush$xmin, input$plot_brush$xmax)
+    if (length(x_range) ==2){
+      x1 <- min(x_range)
+      x2 <- max(x_range)
+      
+      # Do something with the x values, such as calculate the distance between them
+      scale <- x2-x1
+      print(1/scale)
+    }
+  })
 
 
   
@@ -130,7 +149,7 @@ server <- function(input, output, session) {
                #dblclick = "plot_dblclick",
                #dblclick is not shown as a point in plot
                #hover = "plot_hover",
-               #brush = "plot_brush",
+               brush = "plot_brush",
                #str(input$plot_hover)
                
     )
