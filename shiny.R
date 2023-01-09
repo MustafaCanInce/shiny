@@ -37,7 +37,7 @@ ui <- fluidPage(
   # Upload Image Button
   absolutePanel(
     wellPanel(
-      actionButton(icon=NULL, inputId="upload_Button ", width=160, label="Upload Photo")),
+      fileInput("image_file", label = NULL, buttonLabel = "Upload Image", accept = ".jpg")),
     top=200, height=200, left='167vh', width=200),
   # Next Image Button
   absolutePanel(
@@ -76,12 +76,12 @@ ui <- fluidPage(
         icon=NULL, inputId="done_Button", width=160, label="Done")),
     top=800, height=200, left='167vh', width=200),
 )
-  
+
 server <- function(input, output, session) {
   points <- reactiveValues(x = numeric(), y = numeric())
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
- 
+  
   
   
   
@@ -94,7 +94,7 @@ server <- function(input, output, session) {
   
   colnames(point) <- c("id","x","y")
   
-
+  
   observeEvent(input$undo_Button, {
     if (length(xy_new$x) > 0) {
       xy_new$x <- xy_new$x[1:(length(xy_new$x)-1)]
@@ -125,11 +125,14 @@ server <- function(input, output, session) {
       print(1/scale)
     }
   })
-
-
+  
+  #to select path for the image
+  uploaded_image <- reactive({
+    readJPEG(input$image_file$datapath)
+  })
   
   
-
+  
   # By default, Shiny limits file uploads to 5MB per file.
   # modify this limit by using the shiny.maxRequestSize option. 
   # For example, adding options(shiny.maxRequestSize=30*1024^2) to the top of server.R would increase the limit to 30MB.
@@ -164,24 +167,26 @@ server <- function(input, output, session) {
       isolate({
         xy_new$x <- c(xy_new$x, input$plot_click$x)
         xy_new$y <- c(xy_new$y, input$plot_click$y)
-    })
+      })
     }
   })
   
-
+  
   # Get the click values on button click
   pointsforplot <- eventReactive(input$plot_click, ignoreNULL = F, {
     
     tibble(x = xy_new$x, y = xy_new$y)
     
   })
-
+  
   output$distplot <- renderPlot({
     
     # Will update on button click, refreshing the plot
     coord <- tibble(x = xy_new$x, y = xy_new$y)
+    #to set an image
+    if (is.null(input$image_file)){return()
+    }else{img <- uploaded_image()}
     #to save the coordinates of the dots
-    img <- readPNG("Adsız.png",)  # read the image file
     r <- dim(img)[1]  # get the number of rows in the image
     c <- dim(img)[2]  # get the number of columns in the image
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
@@ -205,7 +210,7 @@ server <- function(input, output, session) {
       if(is.null(e)) return("NULL\n")
       paste0("x=", round(e$x, 2), " y=", round(e$y, 2), "\n")
     }
-   
+    
     xy_range_str <- function(e) {
       if(is.null(e)) return("NULL\n")
       paste0("xmin="   , round(e$xmin, 2),           " xmax=", round(e$xmax, 2),
@@ -213,9 +218,9 @@ server <- function(input, output, session) {
              " xrange=", round(e$xmax-e$xmin, 2),    " yrange=", round(e$ymax-e$ymin,2),
              " diag="  , round(sqrt((e$xmax-e$xmin)^2+(e$ymax-e$ymin)^2)))
     }
-
+    
     paste0(
-        "click: ", round(xy_new$x[length(xy_new$x)],2)," ",round(xy_new$y[length(xy_new$y)],2)
+      "click: ", round(xy_new$x[length(xy_new$x)],2)," ",round(xy_new$y[length(xy_new$y)],2)
     )
   })
 }
