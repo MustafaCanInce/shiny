@@ -6,6 +6,7 @@ library(ggimage)
 library(ggplot2)
 library(png)
 library(shinyjs)
+library(shinyalert)
 
 ui <- fluidPage(
   
@@ -37,7 +38,7 @@ ui <- fluidPage(
   # Upload Image Button
   absolutePanel(
     wellPanel(
-      fileInput("image_file", label = NULL, buttonLabel = "Upload Image", accept = ".jpg")),
+      fileInput("image_file", label = NULL, buttonLabel = "Upload Image",multiple = TRUE, accept = ".jpg")),
     top=200, height=200, left='167vh', width=200),
   # Next Image Button
   absolutePanel(
@@ -126,11 +127,32 @@ server <- function(input, output, session) {
     }
   })
   
-  #to select path for the image
-  uploaded_image <- reactive({
-    readJPEG(input$image_file$datapath)
+  
+  # for image storage
+  images_path <- reactiveValues(data = list())
+  
+  observeEvent(input$image_file, {
+    images_path$data <- input$image_file$datapath
   })
   
+  
+  index <- reactiveValues(current = 1)
+  
+  observeEvent(input$next_Button, {
+    if(index$current < length(images_path$data)){
+      index$current <<- index$current + 1
+    } else {
+      shinyalert("Oops!", "This is the last image.", type = "error")
+    }
+  })
+  
+  observeEvent(input$prev_Button, {
+    if(index$current > 1){
+      index$current <<- index$current - 1
+    } else{
+      shinyalert("Oops!", "This is the first image.", type = "error")
+    }
+  })
   
   
   # By default, Shiny limits file uploads to 5MB per file.
@@ -183,9 +205,11 @@ server <- function(input, output, session) {
     
     # Will update on button click, refreshing the plot
     coord <- tibble(x = xy_new$x, y = xy_new$y)
+    
     #to set an image
-    if (is.null(input$image_file)){return()
-    }else{img <- uploaded_image()}
+    if (length(images_path$data) == 0){ return()
+    }else{img <- readJPEG(images_path$data[[index$current]])}
+    
     #to save the coordinates of the dots
     r <- dim(img)[1]  # get the number of rows in the image
     c <- dim(img)[2]  # get the number of columns in the image
