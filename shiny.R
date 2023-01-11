@@ -37,45 +37,51 @@ ui <- fluidPage(
   # Upload Image Button
   absolutePanel(
     wellPanel(
-      actionButton(icon=NULL, inputId="upload_Button ", width=160, label="Upload Photo")),
-        top=200, height=200, left='167vh', width=200),
+      fileInput("image_file", label = NULL, buttonLabel = "Upload Image",multiple = TRUE, accept = ".jpg")),
+    top=200, height=200, left='167vh', width=200),
   # Next Image Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="next_Button"   , width=160, label="Next Image")),
-          top=350, height=200, left='167vh', width=200),
+    top=300, height=200, left='167vh', width=200),
   # Previous Image Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="prev_Button"   , width=160, label="Previous Image")),
-          top=500, height=200, left='167vh', width=200),
+    top=400, height=200, left='167vh', width=200),
   # Missing Point Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="missing_Button", width=160, label="Missing point")),
-          top=650, height=200, left='167vh', width=200),
+    top=500, height=200, left='167vh', width=200),
   # Undo Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="undo_Button", width=160, label="Undo")),
-          top=800, height=200, left='167vh', width=200),
-
+    top=600, height=200, left='167vh', width=200),
+  #Scale Button
+  absolutePanel(
+    wellPanel(
+      actionButton(
+        icon=NULL, inputId="scale_Button"   , width=160, label="Scale")),
+    top=700, height=200, left='167vh', width=200),
   # Done Button
   absolutePanel(
     wellPanel(
       actionButton(
         icon=NULL, inputId="done_Button", width=160, label="Done")),
-          top=950, height=200, left='167vh', width=200)
+    top=800, height=200, left='167vh', width=200),
 )
-  
+
 server <- function(input, output, session) {
+  points <- reactiveValues(x = numeric(), y = numeric())
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
- 
+  
   
   
   
@@ -88,7 +94,7 @@ server <- function(input, output, session) {
   
   colnames(point) <- c("id","x","y")
   
-
+  
   observeEvent(input$undo_Button, {
     if (length(xy_new$x) > 0) {
       xy_new$x <- xy_new$x[1:(length(xy_new$x)-1)]
@@ -106,11 +112,41 @@ server <- function(input, output, session) {
     
     
   })
-
-
+  
+  observeEvent(input$scale_Button, {
+    # Get the minimum and maximum x values from the brush
+    x_range <- c(input$plot_brush$xmin, input$plot_brush$xmax)
+    if (length(x_range) ==2){
+      x1 <- min(x_range)
+      x2 <- max(x_range)
+      
+      # Do something with the x values, such as calculate the distance between them
+      scale <- x2-x1
+      print(1/scale)
+    }
+  })
   
   
-
+  # for image storage
+  images_path <- reactiveValues(data = list())
+  
+  observeEvent(input$image_file, {
+    images_path$data <- input$image_file$datapath
+  })
+  
+  
+  index <- reactiveValues(current = 1)
+  
+  observeEvent(input$next_Button, {
+    if(index$current < length(images_path$data)){
+      index$current <<- index$current + 1
+    } else {
+      index$current <<- 1
+    }
+  })
+  
+  
+  
   # By default, Shiny limits file uploads to 5MB per file.
   # modify this limit by using the shiny.maxRequestSize option. 
   # For example, adding options(shiny.maxRequestSize=30*1024^2) to the top of server.R would increase the limit to 30MB.
@@ -130,7 +166,7 @@ server <- function(input, output, session) {
                #dblclick = "plot_dblclick",
                #dblclick is not shown as a point in plot
                #hover = "plot_hover",
-               #brush = "plot_brush",
+               brush = "plot_brush",
                #str(input$plot_hover)
                
     )
@@ -145,33 +181,37 @@ server <- function(input, output, session) {
       isolate({
         xy_new$x <- c(xy_new$x, input$plot_click$x)
         xy_new$y <- c(xy_new$y, input$plot_click$y)
-    })
+      })
     }
   })
   
-
+  
   # Get the click values on button click
   pointsforplot <- eventReactive(input$plot_click, ignoreNULL = F, {
     
     tibble(x = xy_new$x, y = xy_new$y)
     
   })
-
+  
   output$distplot <- renderPlot({
     
     # Will update on button click, refreshing the plot
     coord <- tibble(x = xy_new$x, y = xy_new$y)
+    
+    #to set an image
+    if (length(images_path$data) == 0){ return()
+    }else{img <- readJPEG(images_path$data[[index$current]])}
+    
     #to save the coordinates of the dots
-    img <- readPNG("Adsız.png",)  # read the image file
     r <- dim(img)[1]  # get the number of rows in the image
     c <- dim(img)[2]  # get the number of columns in the image
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <<- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
     
-    plot(coord$x, coord$y, xlim=c(0, dim(img)[1]), ylim=c(dim(img)[2],0), xlab="X", ylab="Y",xaxt = "n")
+    plot(coord$x, coord$y, xlim=c(0, r), ylim=c(c,0), xlab="X", ylab="Y",xaxt = "n")
     axis(3)
-    rasterImage(img, -25, 2000, 1000, -25)  # add the image as the background of the plot
+    rasterImage(img, 0, r, c, 0)  # add the image as the background of the plot
     points(coord$x, coord$y, col=c("red", "blue", "green"))  # add the points to the plot
     
     
@@ -186,7 +226,7 @@ server <- function(input, output, session) {
       if(is.null(e)) return("NULL\n")
       paste0("x=", round(e$x, 2), " y=", round(e$y, 2), "\n")
     }
-   
+    
     xy_range_str <- function(e) {
       if(is.null(e)) return("NULL\n")
       paste0("xmin="   , round(e$xmin, 2),           " xmax=", round(e$xmax, 2),
@@ -194,11 +234,11 @@ server <- function(input, output, session) {
              " xrange=", round(e$xmax-e$xmin, 2),    " yrange=", round(e$ymax-e$ymin,2),
              " diag="  , round(sqrt((e$xmax-e$xmin)^2+(e$ymax-e$ymin)^2)))
     }
-
+    
     paste0(
-        "click: ", round(xy_new$x[length(xy_new$x)],2)," ",round(xy_new$y[length(xy_new$y)],2)
+      "click: ", round(xy_new$x[length(xy_new$x)],2)," ",round(xy_new$y[length(xy_new$y)],2)
     )
   })
 }
 
-shinyApp(ui=ui, server=server)
+shinyApp(ui=ui,server=server)
