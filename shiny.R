@@ -6,14 +6,14 @@ library(ggimage)
 library(ggplot2)
 library(png)
 library(shinyjs)
+library(shinyalert)
 
 ui <- fluidPage(
-  
   sidebarLayout(
     sidebarPanel(width=1080,
                  #actionButton("plotpoints", label = "Show Dots"),
                  #actionButton("stopaddpoint", label = "Stop"),
-                 
+                 numericInput(inputId = "scale_input", label = "Enter scale value:", value = 1, step = 1),
                  verbatimTextOutput("info"),
                  actionButton("clear_button", label = "Clear Points"),
                  
@@ -75,22 +75,28 @@ ui <- fluidPage(
       actionButton(
         icon=NULL, inputId="done_Button", width=160, label="Done")),
     top=800, height=200, left='167vh', width=200),
+  
 )
 
 server <- function(input, output, session) {
   points <- reactiveValues(x = numeric(), y = numeric())
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
-  
-  
+  scale_value <- reactive({input$scale_input})
   
   
   observeEvent(input$done_Button, {
-    write_csv(points_df, "points.csv")
-    # Display a temporary message
-    showNotification("The points you marked are saved in the points.csv file.")
-    #invalidateLater(500)
+    # Görüntü için x ve y koordinatlarını al
+    x <- xy_new$x[xy_new$x != 0]
+    y <- xy_new$y[xy_new$y != 0]
+    # Data frame oluştur ve dosyaya yaz
+    df <- data.frame(x, y)
+    write.csv(df, file = paste0(image_names$data[index$current], ".csv"), row.names = FALSE)
+    shinyalert("Success!", "Image points have been saved.", type = "success")
   })
+  
+  
+  
   
   colnames(point) <- c("id","x","y")
   
@@ -101,10 +107,6 @@ server <- function(input, output, session) {
       xy_new$y <- xy_new$y[1:(length(xy_new$y)-1)]
     }
   })
-  #observeEvent(input$add_null_button, {
-  #  # write a null value as an x-y coordinate to the TPS file
-  #  write.table(data.frame(x=NA, y=NA), "deneme.tps", sep="\t", row.names=FALSE, col.names=FALSE, append=TRUE)
-  #})
   
   observeEvent(input$missing_Button, {
     xy_new$x <- c(xy_new$x, NA)
@@ -115,6 +117,8 @@ server <- function(input, output, session) {
   
   observeEvent(input$scale_Button, {
     # Get the minimum and maximum x values from the brush
+    validate(need(scale_value()>0, "Scale must be greater than 0"))
+    updateNumericInput(session, "scale_input", value = scale_value())
     x_range <- c(input$plot_brush$xmin, input$plot_brush$xmax)
     if (length(x_range) ==2){
       x1 <- min(x_range)
@@ -122,16 +126,24 @@ server <- function(input, output, session) {
       
       # Do something with the x values, such as calculate the distance between them
       scale <- x2-x1
-      print(1/scale)
+      print(scale_value()/scale)
+      
+      
+      xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
+      xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
+      
     }
   })
   
   
   # for image storage
   images_path <- reactiveValues(data = list())
+  image_names <- reactiveValues(data = list())
   
   observeEvent(input$image_file, {
     images_path$data <- input$image_file$datapath
+    image_names$data <- lapply(input$image_file$datapath, basename)
+    print(image_names$data[1])
   })
   
   
@@ -140,11 +152,22 @@ server <- function(input, output, session) {
   observeEvent(input$next_Button, {
     if(index$current < length(images_path$data)){
       index$current <<- index$current + 1
+      xy_new$x <- numeric(0)
+      xy_new$y <- numeric(0)
     } else {
-      index$current <<- 1
+      shinyalert("Oops!", "This is the last image.", type = "error")
     }
   })
   
+  observeEvent(input$prev_Button, {
+    if(index$current > 1){
+      index$current <<- index$current - 1
+      xy_new$x <- numeric(0)
+      xy_new$y <- numeric(0)
+    } else{
+      shinyalert("Oops!", "This is the first image.", type = "error")
+    }
+  })
   
   
   # By default, Shiny limits file uploads to 5MB per file.
@@ -193,6 +216,8 @@ server <- function(input, output, session) {
     
   })
   
+  
+  
   output$distplot <- renderPlot({
     
     # Will update on button click, refreshing the plot
@@ -202,6 +227,8 @@ server <- function(input, output, session) {
     if (length(images_path$data) == 0){ return()
     }else{img <- readJPEG(images_path$data[[index$current]])}
     
+    
+    
     #to save the coordinates of the dots
     r <- dim(img)[1]  # get the number of rows in the image
     c <- dim(img)[2]  # get the number of columns in the image
@@ -209,9 +236,11 @@ server <- function(input, output, session) {
     coordinates <<- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
     
-    plot(coord$x, coord$y, xlim=c(0, r), ylim=c(c,0), xlab="X", ylab="Y",xaxt = "n")
+    plot(coord$x, coord$y, xlim=c(0, dim(img)[1]), ylim=c(dim(img)[2],0), xlab="X", ylab="Y",xaxt = "n")
     axis(3)
-    rasterImage(img, 0, r, c, 0)  # add the image as the background of the plot
+    rasterImage(img, 0, dim(img)[2], dim(img)[1], 0)
+    
+    # add the image as the background of the plot
     points(coord$x, coord$y, col=c("red", "blue", "green"))  # add the points to the plot
     
     
@@ -241,4 +270,4 @@ server <- function(input, output, session) {
   })
 }
 
-shinyApp(ui=ui,server=server)
+shinyApp(ui=ui, server=server)
