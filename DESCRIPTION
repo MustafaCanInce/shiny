@@ -1,0 +1,11 @@
+Title: Landmark Reliability 
+Author: 'Mustafa Can Ince'
+	'Baris Tetik'
+	'Gizem Ozgen'
+Description: Landmark Reliability (R Shiny) application allows the user to upload one or more images and markup with the help of a click. The app has buttons for various actions like undo the last point and delete all points. When a user clicks on the image, a dot is added to that location. The points are stored in a data frame and allow the user to save them to a csv file using the buttons.
+Depends: R (>= 4.2.2)
+Imports: 'shiny'
+	 'shinyWidgets'
+	 'shinyalert'
+License: MIT
+Encoding: UTF-8
