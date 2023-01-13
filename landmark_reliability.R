@@ -6,45 +6,49 @@ library(jpeg)
 library(shinyjs)
 
 ui <- fluidPage(
+  # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
   useShinyjs(),
   tags$head(
     tags$style(HTML("
-      .radius20 {
+      .all_action_button {
         border-radius: 20px;
         padding: 20px;
          margin: 10px;
       }
-                
-                    "))
+                "))
   ),
+  # Creates a sidebarLayout() which is a layout that positions the sidebarPanel() on the left side of the page
   sidebarLayout(
     sidebarPanel(width=1080,
                  
                  numericInput(inputId = "scale_input", label = "Enter scale value:", value = 1, step = 1),
                  verbatimTextOutput("info"),
     ),
+    # Creates a mainPanel() which is a container for displaying the main content of the application.
     mainPanel(
-      uiOutput(outputId = "plot.ui") # , width = "500",height = "1000"
+      uiOutput(outputId = "plot.ui") 
     )
   ),
+  # Creates an absolutePanel() which is a container for UI elements. Inside this panel, 
+  # It creates a wellPanel() which is a well-styled container for UI elements, this well panel contains several actionButton() and one fileInput() UI elements.
   absolutePanel(
     wellPanel(
       fileInput(
         inputId = "image_file", label = NULL, buttonLabel = "Upload Image",multiple = TRUE, accept = ".jpg"),
       actionButton(
-        icon=NULL, inputId="next_Button"   , width = 140, label="Next Image"        ,class = "radius20"),
+        icon=NULL, inputId="next_Button"   , width = 140, label="Next Image"        ,class = "all_action_button"),
       actionButton(
-        icon=NULL, inputId="prev_Button"   , width = 140, label="Previous Image"    ,class = "radius20"),
+        icon=NULL, inputId="prev_Button"   , width = 140, label="Previous Image"    ,class = "all_action_button"),
       actionButton(
-        icon=NULL, inputId="missing_Button", width = 140, label="Add Missing Point" ,class = "radius20"),
+        icon=NULL, inputId="missing_Button", width = 140, label="Add Missing Point" ,class = "all_action_button"),
       actionButton(
-        icon=NULL, inputId="undo_Button"   , width = 140, label="Undo Last Point"   ,class = "radius20"),
+        icon=NULL, inputId="undo_Button"   , width = 140, label="Undo Last Point"   ,class = "all_action_button"),
       actionButton(
-        icon=NULL, inputId="clear_button"  , width = 140, label="Clear Points"      ,class = "radius20"),
+        icon=NULL, inputId="clear_button"  , width = 140, label="Clear Points"      ,class = "all_action_button"),
       actionButton(
-        icon=NULL, inputId="scale_Button"  , width = 140, label="Scale"             ,class = "radius20"),
+        icon=NULL, inputId="scale_Button"  , width = 140, label="Scale"             ,class = "all_action_button"),
       actionButton(
-        icon=NULL, inputId="done_Button"   , width = 140, label="Done"              ,class = "radius20")
+        icon=NULL, inputId="done_Button"   , width = 140, label="Done"              ,class = "all_action_button")
       ),
       
     top=200, height=200, left='167vh', width=200),
@@ -56,6 +60,7 @@ server <- function(input, output, session) {
   point <- data.frame(po)
   scale_value <- reactive({input$scale_input})
   
+  # The non-zero x and y values from xy_new data to a CSV file with the current index's filename from image_names, and shows an alert.
   observeEvent(input$done_Button, {
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
@@ -66,6 +71,7 @@ server <- function(input, output, session) {
   
   colnames(point) <- c("id","x","y")
   
+  # Checks if there are any points stored in xy_new data, and if so, it removes the last point.
   observeEvent(input$undo_Button, {
     if (length(xy_new$x) > 0) {
       xy_new$x <- xy_new$x[1:(length(xy_new$x)-1)]
@@ -73,12 +79,14 @@ server <- function(input, output, session) {
     }
   })
   
+  # Adds a missing value (NA) to the x and y vectors of xy_new data. And shows a notification .
   observeEvent(input$missing_Button, {
     xy_new$x <- c(xy_new$x, NA)
     xy_new$y <- c(xy_new$y, NA)
     showNotification("Success Null points have been added.")
   })
   
+  # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   observeEvent(input$scale_Button, {
     validate(need(scale_value()>0, "Scale must be greater than 0"))
     updateNumericInput(session, "scale_input", value = scale_value())
@@ -96,6 +104,9 @@ server <- function(input, output, session) {
   images_path <- reactiveValues(data = list())
   image_names <- reactiveValues(data = list())
   
+  # Assigns the path of the uploaded file to the images_path$data variable,
+  # and then applies the basename function to the file path to extract the file name and assigns it to the image_names$data variable.
+  # This allows the user to access the path and name of the image.
   observeEvent(input$image_file, {
     images_path$data <- input$image_file$datapath
     image_names$data <- lapply(input$image_file$datapath, basename)
@@ -103,6 +114,8 @@ server <- function(input, output, session) {
   
   index <- reactiveValues(current = 1)
   
+  # Resets xy_new$x and xy_new$y to empty numeric vectors. 
+  # Then it checks if the current index is less than the total number of images, if so, it increments the current index by 1. 
   observeEvent(input$next_Button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
@@ -113,6 +126,8 @@ server <- function(input, output, session) {
     }
   })
   
+  # Resets xy_new$x and xy_new$y to empty numeric vectors. 
+  # Then it checks if the current index is greater than 1, if so, it decrements the current index by 1.
   observeEvent(input$prev_Button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
@@ -123,10 +138,13 @@ server <- function(input, output, session) {
     }
   })
   
+  # Function to set the shiny.maxRequestSize option to 100 * 1024 ^ 2. This sets the maximum allowed file size to 100 megabytes.
   options(shiny.maxRequestSize=100*1024^2) 
   
   xy_new <- reactiveValues(x= numeric(0), y = numeric(0), line=numeric(0)) # add new points
   
+  # Creates a "distplot" plot output, plot is responsive to clicks with an event handler named "plot_click"
+  # and it allows the user to select a range of x-coordinates using the brush tool, with an event handler named "plot_brush".
   output$plot.ui <- renderUI({
     plotOutput("distplot",
                click = "plot_click",
@@ -136,6 +154,10 @@ server <- function(input, output, session) {
     )
   })
   
+  # Watch for a click event on the plot created by the "plot_click" event handler. When a click event occurs,
+  # it checks that the event is not null and if it is not, it isolates the event by creating a new environment.
+  # Then, it adds the x and y coordinates of the click to the xy_new$x and xy_new$y vectors, respectively.
+  # If the event is null, it will return nothing.
   observe({
     if (is.null(input$plot_click)){
       return()
@@ -148,14 +170,29 @@ server <- function(input, output, session) {
     }
   })
   
+  # Listens to the "plot_click" event and creates a new tibble with the x and y coordinates stored in the xy_new$x and xy_new$y vectors, respectively. 
+  # It will update the tibble every time the event is triggered,
+  # This tibble is used to plot the points on the plot.
   pointsforplot <- eventReactive(input$plot_click, ignoreNULL = F, {
     tibble(x = xy_new$x, y = xy_new$y)
   })
   
+  # First creates a new tibble named coord with x and y coordinates stored in the xy_new$x and xy_new$y vectors. Then, it checks if there are any images available, if not, it returns nothing. 
+  # If there are images, it reads the image located at the current index in images_path$data and assigns it to the variable img. Then it creates variables r and c to store the height and width of the image respectively. 
+  # It creates a dataframe named points_df and assigns the values of x and y from xy_new. It also creates a variable coordinates and assigns the values of x and y from xy_new. It concatenates the new coordinates to the point variable.
+  # Finally, it plots the coordinates on the plot, sets the x and y axis limits to the dimensions of the image, adds the image as a background and plots the points with different color options.
   output$distplot <- renderPlot({
     coord <- tibble(x = xy_new$x, y = xy_new$y)
-    if (length(images_path$data) == 0){ return()
-    }else{img <- readJPEG(images_path$data[[index$current]])}
+    if (length(images_path$data) == 0){
+      path <-("C:\\Users\\PC\\Desktop\\shiny\\arkaplan.jpg")
+      try_result <- tryCatch(img <- readJPEG(path), error = function(e) return(NULL))
+      if (is.null(try_result)) {
+        return(NULL)
+      }
+    }
+    else{
+      img <- readJPEG(images_path$data[[index$current]])
+      }
     r <- dim(img)[1]
     c <- dim(img)[2]
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
@@ -166,11 +203,19 @@ server <- function(input, output, session) {
     rasterImage(img, 0, dim(img)[2], dim(img)[1], 0)
     points(coord$x, coord$y, col=c("red", "blue", "green"))
   })
+  
+  # Function that listens to the "input$clear_button" event. When this event is triggered, 
+  # the function clears the values of xy_new$x and xy_new$y, by setting them to numeric(0) which is an empty numeric vecto
   observeEvent(input$clear_button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
   })
   
+  # Creates two functions xy_str() and xy_range_str() which takes an object that holds x,y coordinates. The first function xy_str() first checks if the passed argument is NULL or not.
+  # If it's NULL, it returns the string "NULL\n". If the argument is not NULL the function takes the x and y values of the coordinates and rounds them to two decimal places using round() function.
+  # Second function xy_range_str() is similar to the first one, it takes a range object that holds xmin, xmax, ymin, ymax values. It checks if the passed argument is NULL or not. If it's NULL, it returns the string "NULL\n". 
+  # Then it calculates xrange, yrange and diagonal distance using euclidean distance formula.
+  # After that, the function paste0() is used to concatenate the last click point coordinates by getting the last elements of xy_new$x and xy_new$y which are x and y respectively and rounding them to two decimal places.
   output$info <- renderText({
     xy_str <- function(e) {
       if(is.null(e)) return("NULL\n")
