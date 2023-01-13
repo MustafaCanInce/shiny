@@ -1,8 +1,22 @@
 library(shiny);
 library(shinyWidgets)
 library(shinyalert)
+library(tibble)
+library(jpeg)
+library(shinyjs)
 
 ui <- fluidPage(
+  useShinyjs(),
+  tags$head(
+    tags$style(HTML("
+      .radius20 {
+        border-radius: 20px;
+        padding: 20px;
+         margin: 10px;
+      }
+                
+                    "))
+  ),
   sidebarLayout(
     sidebarPanel(width=1080,
                  
@@ -15,51 +29,25 @@ ui <- fluidPage(
   ),
   absolutePanel(
     wellPanel(
-      fileInput("image_file", label = NULL, buttonLabel = "Upload Image",multiple = TRUE, accept = ".jpg")),
+      fileInput(
+        inputId = "image_file", label = NULL, buttonLabel = "Upload Image",multiple = TRUE, accept = ".jpg"),
+      actionButton(
+        icon=NULL, inputId="next_Button"   , width = 140, label="Next Image"        ,class = "radius20"),
+      actionButton(
+        icon=NULL, inputId="prev_Button"   , width = 140, label="Previous Image"    ,class = "radius20"),
+      actionButton(
+        icon=NULL, inputId="missing_Button", width = 140, label="Add Missing Point" ,class = "radius20"),
+      actionButton(
+        icon=NULL, inputId="undo_Button"   , width = 140, label="Undo Last Point"   ,class = "radius20"),
+      actionButton(
+        icon=NULL, inputId="clear_button"  , width = 140, label="Clear Points"      ,class = "radius20"),
+      actionButton(
+        icon=NULL, inputId="scale_Button"  , width = 140, label="Scale"             ,class = "radius20"),
+      actionButton(
+        icon=NULL, inputId="done_Button"   , width = 140, label="Done"              ,class = "radius20")
+      ),
+      
     top=200, height=200, left='167vh', width=200),
-  
-  absolutePanel(
-    wellPanel(
-      actionButton(
-        icon=NULL, inputId="next_Button"   , width=160, label="Next Image")),
-    top=300, height=200, left='167vh', width=200),
-  
-  absolutePanel(
-    wellPanel(
-      actionButton(
-        icon=NULL, inputId="prev_Button"   , width=160, label="Previous Image")),
-    top=400, height=200, left='167vh', width=200),
-  
-  absolutePanel(
-    wellPanel(
-      actionButton(
-        icon=NULL, inputId="missing_Button", width=160, label="Missing point")),
-    top=500, height=200, left='167vh', width=200),
-  
-  absolutePanel(
-    wellPanel(
-      actionButton(
-        icon=NULL, inputId="undo_Button", width=160, label="Undo")),
-    top=600, height=200, left='167vh', width=200),
-  
-  absolutePanel(
-    wellPanel(
-      actionButton(
-        icon=NULL, inputId="clear_button"   , width=160, label="Clear Points")),
-    top=700, height=200, left='167vh', width=200),
-  
-  absolutePanel(
-    wellPanel(
-      actionButton(
-        icon=NULL, inputId="scale_Button"   , width=160, label="Scale")),
-    top=800, height=200, left='167vh', width=200),
-  
-  absolutePanel(
-    wellPanel(
-      actionButton(
-        icon=NULL, inputId="done_Button", width=160, label="Done")),
-    top=900, height=200, left='167vh', width=200),
-  
 )
 
 server <- function(input, output, session) {
@@ -88,7 +76,7 @@ server <- function(input, output, session) {
   observeEvent(input$missing_Button, {
     xy_new$x <- c(xy_new$x, NA)
     xy_new$y <- c(xy_new$y, NA)
-    shinyalert("Success!", "Null points have been added.", type = "success")
+    showNotification("Success Null points have been added.")
   })
   
   observeEvent(input$scale_Button, {
@@ -136,7 +124,7 @@ server <- function(input, output, session) {
   })
   
   options(shiny.maxRequestSize=100*1024^2) 
-
+  
   xy_new <- reactiveValues(x= numeric(0), y = numeric(0), line=numeric(0)) # add new points
   
   output$plot.ui <- renderUI({
