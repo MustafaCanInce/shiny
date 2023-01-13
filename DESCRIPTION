@@ -7,5 +7,7 @@ Depends: R (>= 4.2.2)
 Imports: 'shiny'
 	 'shinyWidgets'
 	 'shinyalert'
+	 'tibble'
+	 'jpeg'
 License: MIT
 Encoding: UTF-8
