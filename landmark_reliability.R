@@ -51,7 +51,9 @@ ui <- fluidPage(
       actionButton(
         icon=NULL, inputId="scale_Button"  , width = 140, label="Scale"             ,class = "all_action_button"),
       actionButton(
-        icon=NULL, inputId="done_Button"   , width = 140, label="Done"              ,class = "all_action_button")
+        icon=NULL, inputId="done_Button"   , width = 140, label="Done"              ,class = "all_action_button"),
+      actionButton(
+        icon=NULL, inputId="settings_id"   , width = 140, label="Settings"          ,class = "all_action_button")
       ),
       
     top=200, height=200, left='167vh', width=200),
@@ -62,6 +64,37 @@ server <- function(input, output, session) {
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
   scale_value <- reactive({input$scale_input})
+  
+  
+  observeEvent(input$settings_id, {
+    showModal(modalDialog(
+      title = "Settings",
+      textInput("name_input", "Name:", value = user_name, placeholder = "Enter your name"),
+      textInput("resolution_input", "Screen Resolution:", value = screen_resolution, placeholder = "Enter your screen resolution"),
+      actionButton("submit_id", "Submit"),
+      footer = NULL
+    ))
+  })
+  observeEvent(input$submit_id, {
+    if(input$name_input == "" || input$resolution_input == ""){
+      shinyalert(title = "Error", 
+                 text = "Please fill all the fields", 
+                 type = "error", 
+                 closeOnClick = "cancel"
+      )
+    }else{
+      user_info <- list(name = input$name_input, resolution = input$resolution_input)
+      saveRDS(user_info, "user_info.rds")
+      shinyalert(title = "Success", 
+                 text = "Your information saved successfully!", 
+                 type = "success", 
+                 closeOnClick = "ok"
+      )
+      output$response <- renderText(input$name_input)
+      removeModal()
+    }
+  })
+  
   
   # The non-zero x and y values from xy_new data to a CSV file with the current index's filename from image_names, and shows an alert.
   observeEvent(input$done_Button, {
@@ -95,14 +128,17 @@ server <- function(input, output, session) {
   scale_factor <- known_distance/known_pixels*screen_resolution
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   observeEvent(input$scale_Button, {
-    if(length(xy_new$x) == 2 && length(xy_new$y) == 2) {
-      dist_pixels <- sqrt((xy_new$x[2] - xy_new$x[1])^2 + (xy_new$y[2] - xy_new$y[1])^2)
+    if(length(xy_new$x) >= 2) {
+      dist_pixels <- abs(xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1])
       dist_cm <- dist_pixels*scale_factor
-      paste("Distance:", round(dist_cm,4), "cm")
+      showNotification(paste0("scaling was successful measured distance: ",dist_cm))
+      for(i in 1:2){
+        xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
+        xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
+      }
       
-      print(round(dist_cm,4))
     } else {
-      "Click on two points on the plot"
+      "Click on at least two points on the x-axis of the plot and then press the button"
     }
   })
   
@@ -157,6 +193,7 @@ server <- function(input, output, session) {
                width = "160vh",
                brush = "plot_brush",
     )
+    
   })
   
   # Watch for a click event on the plot created by the "plot_click" event handler. When a click event occurs,
@@ -202,7 +239,7 @@ server <- function(input, output, session) {
     r <- dim(img)[1]
     c <- dim(img)[2]
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
-    coordinates <<- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
+    coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
     plot(coord$x, coord$y, xlim=c(0, dim(img)[1]), ylim=c(dim(img)[2],0), xlab="X", ylab="Y",xaxt = "n")
     axis(3)
