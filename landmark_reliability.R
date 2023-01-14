@@ -4,6 +4,9 @@ library(shinyalert)
 library(tibble)
 library(jpeg)
 library(shinyjs)
+library(raster)
+library(scales)
+
 
 ui <- fluidPage(
   # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
@@ -17,7 +20,7 @@ ui <- fluidPage(
       }
                 "))
   ),
-  # Creates a sidebarLayout() which is a layout that positions the sidebarPanel() on the left side of the page
+  # Creates a sidebarLayout() which is a layout that positions the sidebarPanel() on the left side of the page.
   sidebarLayout(
     sidebarPanel(width=1080,
                  
@@ -86,18 +89,20 @@ server <- function(input, output, session) {
     showNotification("Success Null points have been added.")
   })
   
+  known_distance <- 1 #cm
+  known_pixels <- 38 #pixels
+  screen_resolution <- 1920/1080
+  scale_factor <- known_distance/known_pixels*screen_resolution
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   observeEvent(input$scale_Button, {
-    validate(need(scale_value()>0, "Scale must be greater than 0"))
-    updateNumericInput(session, "scale_input", value = scale_value())
-    x_range <- c(input$plot_brush$xmin, input$plot_brush$xmax)
-    if (length(x_range) ==2){
-      x1 <- min(x_range)
-      x2 <- max(x_range)
-      scale <- x2-x1
-      print(scale_value()/scale)
-      xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
-      xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
+    if(length(xy_new$x) == 2 && length(xy_new$y) == 2) {
+      dist_pixels <- sqrt((xy_new$x[2] - xy_new$x[1])^2 + (xy_new$y[2] - xy_new$y[1])^2)
+      dist_cm <- dist_pixels*scale_factor
+      paste("Distance:", round(dist_cm,4), "cm")
+      
+      print(round(dist_cm,4))
+    } else {
+      "Click on two points on the plot"
     }
   })
   
@@ -192,7 +197,8 @@ server <- function(input, output, session) {
     }
     else{
       img <- readJPEG(images_path$data[[index$current]])
-      }
+    }
+    
     r <- dim(img)[1]
     c <- dim(img)[2]
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
@@ -201,7 +207,14 @@ server <- function(input, output, session) {
     plot(coord$x, coord$y, xlim=c(0, dim(img)[1]), ylim=c(dim(img)[2],0), xlab="X", ylab="Y",xaxt = "n")
     axis(3)
     rasterImage(img, 0, dim(img)[2], dim(img)[1], 0)
-    points(coord$x, coord$y, col=c("red", "blue", "green"))
+    # "cex = 2" sets the size of the plotted points to 2 times the default size. "pch = 20" sets the plotted points to a filled circle shape.
+    points(coord$x, coord$y, col=c("red", "blue", "green"), cex=2, pch=20)
+    # This loop, the indexes are written to the upper right of the points marked on the plot, starting from 0.
+    if(nrow(coord)>0){
+      for (i in 1:nrow(coord)) {
+        text(coord$x[i], coord$y[i], labels = i-1, pos = 4)
+      }
+    }
   })
   
   # Function that listens to the "input$clear_button" event. When this event is triggered, 
