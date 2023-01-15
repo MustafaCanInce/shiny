@@ -6,6 +6,7 @@ library(jpeg)
 library(shinyjs)
 library(raster)
 library(scales)
+library(plotly)
 
 
 ui <- fluidPage(
@@ -64,7 +65,7 @@ server <- function(input, output, session) {
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
   screen_resolution <- 1920/1080
-  user_name <- "user"
+  user_name <- ""
   screen_resolution_options <- c("800x600","1024x576","1024x600","1152x864","1280x960","1280x1024","1360x768","1440x900",
                                  "1600x1000","1680x1050","1920x1200","2560x1440","800x480","854x480","1024x768","1280x720",
                                  "1280x800","1366x768","1600x900","1920x1080")
@@ -119,7 +120,8 @@ server <- function(input, output, session) {
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
-    write.csv(df, file = paste0(image_names$data[index$current], ".csv"), row.names = FALSE)
+    file = paste0(image_names$data[index$current],"_",user_name,".csv")
+    write.csv(df, file = file, row.names = FALSE)
     shinyalert("Success!", "Image points have been saved.", type = "success")
   })
   
@@ -133,7 +135,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Adds a missing value (NA) to the x and y vectors of xy_new data. And shows a notification .
+  # Adds a missing value (NA) to the x vectors of xy_new data. And shows a notification .
   observeEvent(input$missing_Button, {
     xy_new$x <- c(xy_new$x, NA)
     xy_new$y <- c(xy_new$y, NA)
@@ -263,11 +265,11 @@ server <- function(input, output, session) {
     axis(3)
     rasterImage(img, 0, dim(img)[2], dim(img)[1], 0)
     # "cex = 2" sets the size of the plotted points to 2 times the default size. "pch = 20" sets the plotted points to a filled circle shape.
-    points(coord$x, coord$y, col=c("red", "blue", "green"), cex=2, pch=20)
-    # This loop, the indexes are written to the upper right of the points marked on the plot, starting from 0.
+    points(coord$x, coord$y, col=c("red"), cex=2, pch=20)
+    
     if(nrow(coord)>0){
       for (i in 1:nrow(coord)) {
-        text(coord$x[i], coord$y[i], labels = i-1, pos = 4)
+        text(coord$x[i], coord$y[i], labels = i-1, pos = 4, col = "red", cex = 2)
       }
     }
   })
