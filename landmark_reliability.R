@@ -24,7 +24,7 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(width=1080,
                  
-                 numericInput(inputId = "scale_input", label = "Enter scale value:", value = 1, step = 1),
+                
                  verbatimTextOutput("info"),
     ),
     # Creates a mainPanel() which is a container for displaying the main content of the application.
@@ -56,21 +56,24 @@ ui <- fluidPage(
         icon=NULL, inputId="settings_id"   , width = 140, label="Settings"          ,class = "all_action_button")
       ),
       
-    top=200, height=200, left='167vh', width=200),
+    top=125, height=200, left='167vh', width=200),
 )
 
 server <- function(input, output, session) {
   points <- reactiveValues(x = numeric(), y = numeric())
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
-  scale_value <- reactive({input$scale_input})
-  
+  screen_resolution <- 1920/1080
+  user_name <- "user"
+  screen_resolution_options <- c("800x600","1024x576","1024x600","1152x864","1280x960","1280x1024","1360x768","1440x900",
+                                 "1600x1000","1680x1050","1920x1200","2560x1440","800x480","854x480","1024x768","1280x720",
+                                 "1280x800","1366x768","1600x900","1920x1080")
   
   observeEvent(input$settings_id, {
     showModal(modalDialog(
       title = "Settings",
       textInput("name_input", "Name:", value = user_name, placeholder = "Enter your name"),
-      textInput("resolution_input", "Screen Resolution:", value = screen_resolution, placeholder = "Enter your screen resolution"),
+      selectInput("resolution_input", "Screen Resolution:", screen_resolution_options, selected = screen_resolution_options[1]),
       actionButton("submit_id", "Submit"),
       footer = NULL
     ))
@@ -89,12 +92,27 @@ server <- function(input, output, session) {
                  text = "Your information saved successfully!", 
                  type = "success", 
                  closeOnClick = "ok"
+                 
       )
+      read_user_info()
       output$response <- renderText(input$name_input)
       removeModal()
     }
   })
   
+  read_user_info <- function() {
+    if (file.exists("user_info.rds")) {
+      user_info <- readRDS("user_info.rds")
+      user_name <<- user_info$name
+      resolution_parts <- strsplit(user_info$resolution, "x")
+      width <- as.numeric(resolution_parts[[1]][1])
+      height <- as.numeric(resolution_parts[[1]][2])
+      screen_resolution <<- width / height
+    } else {
+      screen_resolution <<- 1920/1080
+      
+    }
+  }
   
   # The non-zero x and y values from xy_new data to a CSV file with the current index's filename from image_names, and shows an alert.
   observeEvent(input$done_Button, {
@@ -124,7 +142,7 @@ server <- function(input, output, session) {
   
   known_distance <- 1 #cm
   known_pixels <- 38 #pixels
-  screen_resolution <- 1920/1080
+  
   scale_factor <- known_distance/known_pixels*screen_resolution
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   observeEvent(input$scale_Button, {
