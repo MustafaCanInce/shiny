@@ -7,7 +7,7 @@ library(shinyjs)
 library(raster)
 library(scales)
 library(plotly)
-
+library(png)
 
 ui <- fluidPage(
   # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
@@ -25,12 +25,12 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(width=1080,
                  
-                
+                 
                  verbatimTextOutput("info"),
     ),
     # Creates a mainPanel() which is a container for displaying the main content of the application.
     mainPanel(
-      uiOutput(outputId = "plot.ui") 
+      uiOutput(outputId = "plot.ui") #, width = "100%"
     )
   ),
   # Creates an absolutePanel() which is a container for UI elements. Inside this panel, 
@@ -55,8 +55,8 @@ ui <- fluidPage(
         icon=NULL, inputId="done_Button"   , width = 140, label="Done"              ,class = "all_action_button"),
       actionButton(
         icon=NULL, inputId="settings_id"   , width = 140, label="Settings"          ,class = "all_action_button")
-      ),
-      
+    ),
+    
     top=125, height=200, left='167vh', width=200),
 )
 
@@ -143,15 +143,17 @@ server <- function(input, output, session) {
   })
   
   known_distance <- 1 #cm
-  known_pixels <- 38 #pixels
+  known_pixels <- 37.7957517575025 #pixels
   
-  scale_factor <- known_distance/known_pixels*screen_resolution
+  scale_factor <- known_distance/known_pixels*1.333333
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   observeEvent(input$scale_Button, {
+    
     if(length(xy_new$x) >= 2) {
       dist_pixels <- abs(xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1])
       dist_cm <- dist_pixels*scale_factor
       showNotification(paste0("scaling was successful measured distance: ",dist_cm))
+      
       for(i in 1:2){
         xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
         xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
@@ -253,7 +255,12 @@ server <- function(input, output, session) {
       }
     }
     else{
-      img <- readJPEG(images_path$data[[index$current]])
+      img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
+      if(img_extension == "jpg" || img_extension == "jpeg"){
+        img <- readJPEG(images_path$data[[index$current]])
+      } else if(img_extension == "png"){
+        img <- readPNG(images_path$data[[index$current]])
+      }
     }
     
     r <- dim(img)[1]
