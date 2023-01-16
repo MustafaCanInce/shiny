@@ -8,6 +8,8 @@ library(raster)
 library(scales)
 library(plotly)
 library(png)
+library(sp)
+library(ggplot2)
 
 ui <- fluidPage(
   # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
@@ -40,24 +42,26 @@ ui <- fluidPage(
       fileInput(
         inputId = "image_file", label = NULL, buttonLabel = "Upload Image",multiple = TRUE, accept = ".jpg"),
       actionButton(
-        icon=NULL, inputId="next_Button"   , width = 140, label="Next Image"        ,class = "all_action_button"),
+        icon = NULL, inputId = "next_Button"     , width = 140, class = "all_action_button", label = "Next Image"),
       actionButton(
-        icon=NULL, inputId="prev_Button"   , width = 140, label="Previous Image"    ,class = "all_action_button"),
+        icon = NULL, inputId = "prev_Button"     , width = 140, class = "all_action_button", label = "Previous Image"),
       actionButton(
-        icon=NULL, inputId="missing_Button", width = 140, label="Add Missing Point" ,class = "all_action_button"),
+        icon = NULL, inputId = "missing_Button"  , width = 140, class = "all_action_button", label = "Add Missing Point"),
       actionButton(
-        icon=NULL, inputId="undo_Button"   , width = 140, label="Undo Last Point"   ,class = "all_action_button"),
+        icon = NULL, inputId = "value_imputation", width = 140, class = "all_action_button", HTML("Missing Value<br/>Imputation")),
       actionButton(
-        icon=NULL, inputId="clear_button"  , width = 140, label="Clear Points"      ,class = "all_action_button"),
+        icon = NULL, inputId = "undo_Button"     , width = 140, class = "all_action_button", label = "Undo Last Point"),
       actionButton(
-        icon=NULL, inputId="scale_Button"  , width = 140, label="Scale"             ,class = "all_action_button"),
+        icon = NULL, inputId = "clear_button"    , width = 140, class = "all_action_button", label = "Clear Points"),
       actionButton(
-        icon=NULL, inputId="done_Button"   , width = 140, label="Done"              ,class = "all_action_button"),
+        icon = NULL, inputId = "scale_Button"    , width = 140, class = "all_action_button", label = "Scale"),
       actionButton(
-        icon=NULL, inputId="settings_id"   , width = 140, label="Settings"          ,class = "all_action_button")
+        icon = NULL, inputId = "done_Button"     , width = 140, class = "all_action_button", label = "Done"),
+      actionButton(
+        icon = NULL, inputId = "settings_id"     , width = 140, class = "all_action_button", label = "Settings")
     ),
     
-    top=125, height=200, left='167vh', width=200),
+    top=100, height=200, left='170vh', width=200),
 )
 
 server <- function(input, output, session) {
@@ -130,8 +134,8 @@ server <- function(input, output, session) {
   # Checks if there are any points stored in xy_new data, and if so, it removes the last point.
   observeEvent(input$undo_Button, {
     if (length(xy_new$x) > 0) {
-      xy_new$x <- xy_new$x[1:(length(xy_new$x)-1)]
-      xy_new$y <- xy_new$y[1:(length(xy_new$y)-1)]
+      xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
+      xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
     }
   })
   
@@ -139,7 +143,7 @@ server <- function(input, output, session) {
   observeEvent(input$missing_Button, {
     xy_new$x <- c(xy_new$x, NA)
     xy_new$y <- c(xy_new$y, NA)
-    showNotification("Success Null points have been added.")
+    showNotification("Success, Null points have been added.")
   })
   
   known_distance <- 1 #cm
@@ -245,21 +249,32 @@ server <- function(input, output, session) {
   # If there are images, it reads the image located at the current index in images_path$data and assigns it to the variable img. Then it creates variables r and c to store the height and width of the image respectively. 
   # It creates a dataframe named points_df and assigns the values of x and y from xy_new. It also creates a variable coordinates and assigns the values of x and y from xy_new. It concatenates the new coordinates to the point variable.
   # Finally, it plots the coordinates on the plot, sets the x and y axis limits to the dimensions of the image, adds the image as a background and plots the points with different color options.
+  
+  
+  #path <- "https://drive.google.com/file/d/1K2iccsTG-CdcYO81qiMFgv_Y6qGyUaM7/view?usp=sharing"
+  #response <- httr::HEAD(path)
+  #if (httr::status_code(response) != 200) {
+  #  return(NULL)
+  #}
+  #img <- httr::content(httr::GET(path), as = "raw")
+  
+  
   output$distplot <- renderPlot({
     coord <- tibble(x = xy_new$x, y = xy_new$y)
     if (length(images_path$data) == 0){
-      path <-("C:\\Users\\PC\\Desktop\\shiny\\arkaplan.jpg")
-      try_result <- tryCatch(img <- readJPEG(path), error = function(e) return(NULL))
-      if (is.null(try_result)) {
-        return(NULL)
-      }
+      return(plot(NULL, xlim = c(0, 1), ylim = c(0, 1), xlab = "x", ylab = "y", main = ""))
     }
     else{
       img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
       if(img_extension == "jpg" || img_extension == "jpeg"){
         img <- readJPEG(images_path$data[[index$current]])
-      } else if(img_extension == "png"){
+      } 
+      else if(img_extension == "png"){
         img <- readPNG(images_path$data[[index$current]])
+      }
+      else{
+        shinyalert("Oops!", "Invalid file type. Please upload JPEG,JPG or PNG image.", type = "error")
+        return()
       }
     }
     
