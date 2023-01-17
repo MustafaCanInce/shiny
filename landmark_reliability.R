@@ -69,11 +69,13 @@ server <- function(input, output, session) {
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
   screen_resolution <- 1920/1080
-  user_name <- ""
+  user_name <- "user"
   screen_resolution_options <- c("800x600","1024x576","1024x600","1152x864","1280x960","1280x1024","1360x768","1440x900",
                                  "1600x1000","1680x1050","1920x1200","2560x1440","800x480","854x480","1024x768","1280x720",
                                  "1280x800","1366x768","1600x900","1920x1080")
   
+  # When input is detected, it shows a modal dialog using the "showModal" function. The modal dialog contains a title, a text input field for "name_input", a select input field for "resolution_input" with options from "screen_resolution_options" 
+  # and pre-selected as the first option, a submit button with the id "submit_id" and no footer. 
   observeEvent(input$settings_id, {
     showModal(modalDialog(
       title = "Settings",
@@ -83,6 +85,9 @@ server <- function(input, output, session) {
       footer = NULL
     ))
   })
+  
+  # When input is detected, it checks if the "name_input" or "resolution_input" fields are empty. If either field is empty, it displays an error message using the "shinyalert" function.
+  # If both fields are filled, it creates a "user_info" list with the input values, saves the list to the "user_info.rds" file and shows a success message using the "shinyalert" function.
   observeEvent(input$submit_id, {
     if(input$name_input == "" || input$resolution_input == ""){
       shinyalert(title = "Error", 
@@ -105,6 +110,9 @@ server <- function(input, output, session) {
     }
   })
   
+  # If the file exists, it reads the "name" and "resolution" values from the file and assigns them to the variables "user_name" and "screen_resolution" respectively. 
+  # The "resolution" value is split by the "x" character and the first part is assigned to the "width" variable, while the second part is assigned to the "height" variable. 
+  # If the file does not exist, the "screen_resolution" variable is assigned the value of 1920/1080.
   read_user_info <- function() {
     if (file.exists("user_info.rds")) {
       user_info <- readRDS("user_info.rds")
@@ -146,10 +154,14 @@ server <- function(input, output, session) {
     showNotification("Success, Null points have been added.")
   })
   
+  # Captures the selected range of x-axis coordinates from a plot brush and calculates the scale. A variable "known_distance" is set to 1 cm and "known_pixels" is set to 37.7957517575025 pixels. 
+  # A scale factor is calculated by dividing known_distance by known_pixels and multiplying by "screen_resolution". 
+  # It creates an observer that listens to the "scale_Button" input. When the input is detected it checks if two points are selected on the x-axis of the plot. 
+  # If two points are selected, it calculates the distance in pixels between them, multiplies it by the scale factor and shows a notification with the calculated distance in cm. It also removes the two last points from xy_new$x and xy_new$y, 
+  # if not it shows a message that at least two points need to be selected before the button is pressed.
   known_distance <- 1 #cm
   known_pixels <- 37.7957517575025 #pixels
-  
-  scale_factor <- known_distance/known_pixels*1.333333
+  scale_factor <- known_distance/known_pixels*screen_resolution
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   observeEvent(input$scale_Button, {
     
@@ -188,7 +200,8 @@ server <- function(input, output, session) {
     xy_new$y <- numeric(0)
     if(index$current < length(images_path$data)){
       index$current <<- index$current + 1
-    } else {
+    }
+    else {
       shinyalert("Oops!", "This is the last image.", type = "error")
     }
   })
@@ -200,7 +213,8 @@ server <- function(input, output, session) {
     xy_new$y <- numeric(0)
     if(index$current > 1){
       index$current <<- index$current - 1
-    } else{
+    }
+    else{
       shinyalert("Oops!", "This is the first image.", type = "error")
     }
   })
@@ -249,16 +263,6 @@ server <- function(input, output, session) {
   # If there are images, it reads the image located at the current index in images_path$data and assigns it to the variable img. Then it creates variables r and c to store the height and width of the image respectively. 
   # It creates a dataframe named points_df and assigns the values of x and y from xy_new. It also creates a variable coordinates and assigns the values of x and y from xy_new. It concatenates the new coordinates to the point variable.
   # Finally, it plots the coordinates on the plot, sets the x and y axis limits to the dimensions of the image, adds the image as a background and plots the points with different color options.
-  
-  
-  #path <- "https://drive.google.com/file/d/1K2iccsTG-CdcYO81qiMFgv_Y6qGyUaM7/view?usp=sharing"
-  #response <- httr::HEAD(path)
-  #if (httr::status_code(response) != 200) {
-  #  return(NULL)
-  #}
-  #img <- httr::content(httr::GET(path), as = "raw")
-  
-  
   output$distplot <- renderPlot({
     coord <- tibble(x = xy_new$x, y = xy_new$y)
     if (length(images_path$data) == 0){
