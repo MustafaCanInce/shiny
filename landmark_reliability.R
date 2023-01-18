@@ -10,6 +10,7 @@ library(plotly)
 library(png)
 library(sp)
 library(ggplot2)
+library(fontawesome)
 
 ui <- fluidPage(
   # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
@@ -40,25 +41,25 @@ ui <- fluidPage(
   absolutePanel(
     wellPanel(
       fileInput(
-        inputId = "image_file", label = NULL, buttonLabel = "Upload Image",multiple = TRUE, accept = ".jpg"),
+        inputId = "image_file",        label = NULL, buttonLabel = "Upload Image", multiple = TRUE, accept = ".jpg",),
+      fileInput(
+        inputId = "imputation_Button", label = NULL, buttonLabel = HTML("Missing Value<br/>Imputation"), multiple = TRUE, accept = ".csv"),
       actionButton(
-        icon = NULL, inputId = "next_Button"     , width = 140, class = "all_action_button", label = "Next Image"),
+        icon = NULL, inputId = "next_Button"      , width = 140, class = "all_action_button", label = "Next Image"),
       actionButton(
-        icon = NULL, inputId = "prev_Button"     , width = 140, class = "all_action_button", label = "Previous Image"),
+        icon = NULL, inputId = "prev_Button"      , width = 140, class = "all_action_button", label = "Previous Image"),
       actionButton(
-        icon = NULL, inputId = "missing_Button"  , width = 140, class = "all_action_button", label = "Add Missing Point"),
+        icon = NULL, inputId = "missing_Button"   , width = 140, class = "all_action_button", label = "Add Missing Point"),
       actionButton(
-        icon = NULL, inputId = "value_imputation", width = 140, class = "all_action_button", HTML("Missing Value<br/>Imputation")),
+        icon = NULL, inputId = "undo_Button"      , width = 140, class = "all_action_button", label = "Undo Last Point"),
       actionButton(
-        icon = NULL, inputId = "undo_Button"     , width = 140, class = "all_action_button", label = "Undo Last Point"),
+        icon = NULL, inputId = "clear_button"     , width = 140, class = "all_action_button", label = "Clear Points"),
       actionButton(
-        icon = NULL, inputId = "clear_button"    , width = 140, class = "all_action_button", label = "Clear Points"),
+        icon = NULL, inputId = "scale_Button"     , width = 140, class = "all_action_button", label = "Scale"),
       actionButton(
-        icon = NULL, inputId = "scale_Button"    , width = 140, class = "all_action_button", label = "Scale"),
+        icon = NULL, inputId = "done_Button"      , width = 140, class = "all_action_button", label = "Done"),
       actionButton(
-        icon = NULL, inputId = "done_Button"     , width = 140, class = "all_action_button", label = "Done"),
-      actionButton(
-        icon = NULL, inputId = "settings_id"     , width = 140, class = "all_action_button", label = "Settings")
+        icon = NULL, inputId = "settings_id"      , width = 140, class = "all_action_button", label = "Settings")
     ),
     
     top=100, height=200, left='170vh', width=200),
@@ -73,6 +74,9 @@ server <- function(input, output, session) {
   screen_resolution_options <- c("800x600","1024x576","1024x600","1152x864","1280x960","1280x1024","1360x768","1440x900",
                                  "1600x1000","1680x1050","1920x1200","2560x1440","800x480","854x480","1024x768","1280x720",
                                  "1280x800","1366x768","1600x900","1920x1080")
+  known_distance <- 1 #cm
+  known_pixels <- 37.7957517575025 #pixels
+  
   
   # When input is detected, it shows a modal dialog using the "showModal" function. The modal dialog contains a title, a text input field for "name_input", a select input field for "resolution_input" with options from "screen_resolution_options" 
   # and pre-selected as the first option, a submit button with the id "submit_id" and no footer. 
@@ -81,22 +85,26 @@ server <- function(input, output, session) {
       title = "Settings",
       textInput("name_input", "Name:", value = user_name, placeholder = "Enter your name"),
       selectInput("resolution_input", "Screen Resolution:", screen_resolution_options, selected = screen_resolution_options[1]),
+      numericInput("knowndistance_input", "Known Distance:", value = known_distance),
+      numericInput("knownpixels_input", "Known Pixels:", value = known_pixels),
       actionButton("submit_id", "Submit"),
       footer = NULL
     ))
   })
+
   
   # When input is detected, it checks if the "name_input" or "resolution_input" fields are empty. If either field is empty, it displays an error message using the "shinyalert" function.
   # If both fields are filled, it creates a "user_info" list with the input values, saves the list to the "user_info.rds" file and shows a success message using the "shinyalert" function.
   observeEvent(input$submit_id, {
-    if(input$name_input == "" || input$resolution_input == ""){
+    if(input$name_input == "" || input$resolution_input == "" || input$knowndistance_input == "" || input$knownpixels_input == ""){
       shinyalert(title = "Error", 
                  text = "Please fill all the fields", 
                  type = "error", 
                  closeOnClick = "cancel"
       )
-    }else{
-      user_info <- list(name = input$name_input, resolution = input$resolution_input)
+    }
+    else {
+      user_info <- list(name = input$name_input, resolution = input$resolution_input, distance = input$knowndistance_input, pixels = input$knownpixels_input)
       saveRDS(user_info, "user_info.rds")
       shinyalert(title = "Success", 
                  text = "Your information saved successfully!", 
@@ -121,9 +129,11 @@ server <- function(input, output, session) {
       width <- as.numeric(resolution_parts[[1]][1])
       height <- as.numeric(resolution_parts[[1]][2])
       screen_resolution <<- width / height
-    } else {
-      screen_resolution <<- 1920/1080
-      
+      known_pixels <<- user_info$pixels
+      known_distance <<- user_info$distance
+    }
+    else {
+      shinyalert("warning!", "user_info.rds not exists.", type = "warning")
     }
   }
   
@@ -159,15 +169,14 @@ server <- function(input, output, session) {
   # It creates an observer that listens to the "scale_Button" input. When the input is detected it checks if two points are selected on the x-axis of the plot. 
   # If two points are selected, it calculates the distance in pixels between them, multiplies it by the scale factor and shows a notification with the calculated distance in cm. It also removes the two last points from xy_new$x and xy_new$y, 
   # if not it shows a message that at least two points need to be selected before the button is pressed.
-  known_distance <- 1 #cm
-  known_pixels <- 37.7957517575025 #pixels
-  scale_factor <- known_distance/known_pixels*screen_resolution
+  
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   observeEvent(input$scale_Button, {
-    
+    scale_factor <- known_distance/known_pixels*screen_resolution
     if(length(xy_new$x) >= 2) {
       dist_pixels <- abs(xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1])
       dist_cm <- dist_pixels*scale_factor
+      print(known_pixels)
       showNotification(paste0("scaling was successful measured distance: ",dist_cm))
       
       for(i in 1:2){
@@ -214,7 +223,7 @@ server <- function(input, output, session) {
     if(index$current > 1){
       index$current <<- index$current - 1
     }
-    else{
+    else {
       shinyalert("Oops!", "This is the first image.", type = "error")
     }
   })
@@ -268,7 +277,7 @@ server <- function(input, output, session) {
     if (length(images_path$data) == 0){
       return(plot(NULL, xlim = c(0, 1), ylim = c(0, 1), xlab = "x", ylab = "y", main = ""))
     }
-    else{
+    else {
       img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
       if(img_extension == "jpg" || img_extension == "jpeg"){
         img <- readJPEG(images_path$data[[index$current]])
@@ -276,7 +285,7 @@ server <- function(input, output, session) {
       else if(img_extension == "png"){
         img <- readPNG(images_path$data[[index$current]])
       }
-      else{
+      else {
         shinyalert("Oops!", "Invalid file type. Please upload JPEG,JPG or PNG image.", type = "error")
         return()
       }
