@@ -69,14 +69,10 @@ server <- function(input, output, session) {
   points <- reactiveValues(x = numeric(), y = numeric())
   po <- matrix( nrow = 0, ncol = 3)
   point <- data.frame(po)
-  screen_resolution <- 1920/1080
   user_name <- "user"
-  screen_resolution_options <- c("800x600","1024x576","1024x600","1152x864","1280x960","1280x1024","1360x768","1440x900",
-                                 "1600x1000","1680x1050","1920x1200","2560x1440","800x480","854x480","1024x768","1280x720",
-                                 "1280x800","1366x768","1600x900","1920x1080")
+  knowndistance_options <- c("mm","cm","m")
   known_distance <- 1 #cm
-  known_pixels <- 37.7957517575025 #pixels
-  
+  unitsofmetric <- "cm"
   
   # When input is detected, it shows a modal dialog using the "showModal" function. The modal dialog contains a title, a text input field for "name_input", a select input field for "resolution_input" with options from "screen_resolution_options" 
   # and pre-selected as the first option, a submit button with the id "submit_id" and no footer. 
@@ -84,10 +80,11 @@ server <- function(input, output, session) {
     showModal(modalDialog(
       title = "Settings",
       textInput("name_input", "Name:", value = user_name, placeholder = "Enter your name"),
-      selectInput("resolution_input", "Screen Resolution:", screen_resolution_options, selected = screen_resolution_options[1]),
+      selectInput("knowndistance_units_input", "Units of Lengthn:", knowndistance_options, selected = knowndistance_options[1]),
       numericInput("knowndistance_input", "Known Distance:", value = known_distance),
-      numericInput("knownpixels_input", "Known Pixels:", value = known_pixels),
+      actionButton("ratio_button", "Reset the Ratio"),
       actionButton("submit_id", "Submit"),
+      actionButton("close_modal", "Close"),
       footer = NULL
     ))
   })
@@ -96,7 +93,7 @@ server <- function(input, output, session) {
   # When input is detected, it checks if the "name_input" or "resolution_input" fields are empty. If either field is empty, it displays an error message using the "shinyalert" function.
   # If both fields are filled, it creates a "user_info" list with the input values, saves the list to the "user_info.rds" file and shows a success message using the "shinyalert" function.
   observeEvent(input$submit_id, {
-    if(input$name_input == "" || input$resolution_input == "" || input$knowndistance_input == "" || input$knownpixels_input == ""){
+    if(input$name_input == ""  || input$knowndistance_input == "" || input$knowndistance_units_input == ""){
       shinyalert(title = "Error", 
                  text = "Please fill all the fields", 
                  type = "error", 
@@ -104,7 +101,7 @@ server <- function(input, output, session) {
       )
     }
     else {
-      user_info <- list(name = input$name_input, resolution = input$resolution_input, distance = input$knowndistance_input, pixels = input$knownpixels_input)
+      user_info <- list(name = input$name_input, knowndistance_units = input$knowndistance_units_input, distance = input$knowndistance_input)
       saveRDS(user_info, "user_info.rds")
       shinyalert(title = "Success", 
                  text = "Your information saved successfully!", 
@@ -118,6 +115,19 @@ server <- function(input, output, session) {
     }
   })
   
+  
+  observeEvent(input$ratio_button, {
+    ratio <<- 0
+    shinyalert(title = "Success", 
+               text = "Ratio resetted!", 
+               type = "success", 
+               closeOnClick = "ok")
+  })
+  observeEvent(input$close_modal, {
+    removeModal()
+  })
+
+  
   # If the file exists, it reads the "name" and "resolution" values from the file and assigns them to the variables "user_name" and "screen_resolution" respectively. 
   # The "resolution" value is split by the "x" character and the first part is assigned to the "width" variable, while the second part is assigned to the "height" variable. 
   # If the file does not exist, the "screen_resolution" variable is assigned the value of 1920/1080.
@@ -125,11 +135,7 @@ server <- function(input, output, session) {
     if (file.exists("user_info.rds")) {
       user_info <- readRDS("user_info.rds")
       user_name <<- user_info$name
-      resolution_parts <- strsplit(user_info$resolution, "x")
-      width <- as.numeric(resolution_parts[[1]][1])
-      height <- as.numeric(resolution_parts[[1]][2])
-      screen_resolution <<- width / height
-      known_pixels <<- user_info$pixels
+      unitsofmetric <<- user_info$knowndistance_units
       known_distance <<- user_info$distance
     }
     else {
@@ -164,6 +170,9 @@ server <- function(input, output, session) {
     showNotification("Success, Null points have been added.")
   })
   
+  
+  
+  
   # Captures the selected range of x-axis coordinates from a plot brush and calculates the scale. A variable "known_distance" is set to 1 cm and "known_pixels" is set to 37.7957517575025 pixels. 
   # A scale factor is calculated by dividing known_distance by known_pixels and multiplying by "screen_resolution". 
   # It creates an observer that listens to the "scale_Button" input. When the input is detected it checks if two points are selected on the x-axis of the plot. 
@@ -171,14 +180,17 @@ server <- function(input, output, session) {
   # if not it shows a message that at least two points need to be selected before the button is pressed.
   
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
+  
+  ratio <- 0
+ 
   observeEvent(input$scale_Button, {
-    scale_factor <- known_distance/known_pixels*screen_resolution
-    if(length(xy_new$x) >= 2) {
-      dist_pixels <- abs(xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1])
-      dist_cm <- dist_pixels*scale_factor
-      print(known_pixels)
-      showNotification(paste0("scaling was successful measured distance: ",dist_cm))
-      
+   
+    if(length(xy_new$x) >= 2 && ratio == 0) {
+      delta_x <- xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1]
+      delta_y <- xy_new$y[length(xy_new$y)] - xy_new$y[length(xy_new$y)-1]
+      result <- sqrt(delta_x^2 + delta_y^2)
+      ratio <<- result / known_distance
+      showNotification(paste0("scaling was successful calibrated. ratio is:",ratio))
       for(i in 1:2){
         xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
         xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
@@ -186,6 +198,26 @@ server <- function(input, output, session) {
       
     } else {
       "Click on at least two points on the x-axis of the plot and then press the button"
+    }
+    if(ratio != 0){
+      delta_x <- xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1]
+      delta_y <- xy_new$y[length(xy_new$y)] - xy_new$y[length(xy_new$y)-1]
+      result <- sqrt(delta_x^2 + delta_y^2)
+      if(unitsofmetric == "cm"){
+        new_result <- result / ratio
+      } else if(unitsofmetric == "mm"){
+        result = result * 100
+        new_result <- result / ratio
+      } else if(unitsofmetric == "m"){
+        result = result / 100
+        new_result <- result / ratio
+      }
+      showNotification(paste0("scaling was successful measured distance: ",new_result," ",unitsofmetric))
+      
+      for(i in 1:2){
+        xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
+        xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
+      }
     }
   })
   
@@ -198,6 +230,7 @@ server <- function(input, output, session) {
   observeEvent(input$image_file, {
     images_path$data <- input$image_file$datapath
     image_names$data <- lapply(input$image_file$datapath, basename)
+    ratio <<- 0
   })
   
   index <- reactiveValues(current = 1)
@@ -209,6 +242,7 @@ server <- function(input, output, session) {
     xy_new$y <- numeric(0)
     if(index$current < length(images_path$data)){
       index$current <<- index$current + 1
+      ratio <<- 0
     }
     else {
       shinyalert("Oops!", "This is the last image.", type = "error")
@@ -222,6 +256,7 @@ server <- function(input, output, session) {
     xy_new$y <- numeric(0)
     if(index$current > 1){
       index$current <<- index$current - 1
+      ratio <<- 0
     }
     else {
       shinyalert("Oops!", "This is the first image.", type = "error")
@@ -275,7 +310,7 @@ server <- function(input, output, session) {
   output$distplot <- renderPlot({
     coord <- tibble(x = xy_new$x, y = xy_new$y)
     if (length(images_path$data) == 0){
-      return(plot(NULL, xlim = c(0, 1), ylim = c(0, 1), xlab = "x", ylab = "y", main = ""))
+      return(plot(NULL, xlim = c(0, 1), ylim = c(0, 1), xlab = "x", ylab = "y", main = "")) 
     }
     else {
       img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
@@ -291,14 +326,19 @@ server <- function(input, output, session) {
       }
     }
     
-    r <- dim(img)[1]
-    c <- dim(img)[2]
+    height <- dim(img)[1]
+    width <- dim(img)[2]
+    screen_resolution <<- (width/height)
+    
+    
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
-    plot(coord$x, coord$y, xlim=c(0, dim(img)[1]), ylim=c(dim(img)[2],0), xlab="X", ylab="Y",xaxt = "n")
+    plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(dim(img)[1],0), xlab="X", ylab="Y",xaxt = "n")
+    #plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(0, dim(img)[1]), xlab="X", ylab="Y")
     axis(3)
     rasterImage(img, 0, dim(img)[2], dim(img)[1], 0)
+    #rasterImage(img, 0, 0, dim(img)[1]*screen_resolution, dim(img)[2],resize=F)
     # "cex = 2" sets the size of the plotted points to 2 times the default size. "pch = 20" sets the plotted points to a filled circle shape.
     points(coord$x, coord$y, col=c("red"), cex=2, pch=20)
     
