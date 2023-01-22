@@ -11,6 +11,7 @@ library(png)
 library(sp)
 library(ggplot2)
 library(fontawesome)
+library(magick)
 
 ui <- fluidPage(
   # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
@@ -26,14 +27,14 @@ ui <- fluidPage(
   ),
   # Creates a sidebarLayout() which is a layout that positions the sidebarPanel() on the left side of the page.
   sidebarLayout(
-    sidebarPanel(width=1080,
+    sidebarPanel(width="%20",
                  
                  
                  verbatimTextOutput("info"),
     ),
     # Creates a mainPanel() which is a container for displaying the main content of the application.
     mainPanel(
-      uiOutput(outputId = "plot.ui") #, width = "100%"
+      uiOutput(outputId = "plot.ui") 
     )
   ),
   # Creates an absolutePanel() which is a container for UI elements. Inside this panel, 
@@ -330,17 +331,18 @@ server <- function(input, output, session) {
     width <- dim(img)[2]
     screen_resolution <<- (width/height)
     
-    
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
-    plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(dim(img)[1],0), xlab="X", ylab="Y",xaxt = "n")
-    #plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(0, dim(img)[1]), xlab="X", ylab="Y")
-    axis(3)
-    rasterImage(img, 0, dim(img)[2], dim(img)[1], 0)
+    plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(dim(img)[1],0), xlab="X", ylab="Y", xaxt = "n")
+    axis(3, at = seq(0, dim(img)[2], by = 50))
+    axis(2, at = seq(dim(img)[1], 0, by = -50))
+    rasterImage(img, 0, dim(img)[1], dim(img)[2], 0)
+    
     #rasterImage(img, 0, 0, dim(img)[1]*screen_resolution, dim(img)[2],resize=F)
     # "cex = 2" sets the size of the plotted points to 2 times the default size. "pch = 20" sets the plotted points to a filled circle shape.
     points(coord$x, coord$y, col=c("red"), cex=2, pch=20)
+    
     
     if(nrow(coord)>0){
       for (i in 1:nrow(coord)) {
@@ -348,6 +350,9 @@ server <- function(input, output, session) {
       }
     }
   })
+  
+  
+  
   
   # Function that listens to the "input$clear_button" event. When this event is triggered, 
   # the function clears the values of xy_new$x and xy_new$y, by setting them to numeric(0) which is an empty numeric vecto
