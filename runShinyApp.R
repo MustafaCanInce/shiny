@@ -1,7 +1,6 @@
 library("rstudioapi")
 getwd()
 setwd(dirname(getActiveDocumentContext()$path))
-getwd()  
 
 runShinyApp <- function(){
   source("ui.R")
@@ -11,4 +10,3 @@ runShinyApp <- function(){
 }
 
 runShinyApp()
-

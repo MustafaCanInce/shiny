@@ -81,8 +81,10 @@ server <- function(input, output, session) {
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
+    df <- rbind(df, data.frame(x = "", y = ""))
     file = paste0(image_names$data[index$current],"_",user_name,".csv")
     write.csv(df, file = file, row.names = FALSE)
+    write.table(results_df, file = file, col.names=FALSE, sep=",", append=TRUE)
     shinyalert("Success!", "Image points have been saved.", type = "success")
   })
   
@@ -115,7 +117,7 @@ server <- function(input, output, session) {
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   
   ratio <- 0
-  
+  results_df <- data.frame(new_result = numeric(), unitsofmetric = character())
   observeEvent(input$scale_Button, {
     
     if(length(xy_new$x) >= 2 && ratio == 0) {
@@ -126,7 +128,6 @@ server <- function(input, output, session) {
       showNotification(paste0("scaling was successful calibrated. ratio is:",ratio))
       
       for(i in 1:2){
-        print(i)
         xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
         xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
       }
@@ -146,6 +147,7 @@ server <- function(input, output, session) {
         new_result <- result / ratio
       }
       showNotification(paste0("scaling was successful measured distance: ",new_result," ",unitsofmetric))
+      results_df <<- results_df %>% add_row(new_result = new_result, unitsofmetric = unitsofmetric)
       
       for(i in 1:2){
         xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
@@ -153,7 +155,8 @@ server <- function(input, output, session) {
       }
     }
     else {
-      "Click on at least two points on the x-axis of the plot and then press the button"
+      showNotification(paste0("Click on at least two points on the plot and then press the scale button."))
+      
     }
   })
   
