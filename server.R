@@ -6,6 +6,267 @@ server <- function(input, output, session) {
   knowndistance_options <- c("mm","cm","m")
   known_distance <- 1 #cm
   unitsofmetric <- "cm"
+  file_path <- file.path(getwd(), "output")
+  l1 <- 1
+  l2 <- 2
+  
+  observeEvent(input$imputation_Button, {
+    showModal(modalDialog(
+      title = "Imputation Settings",
+      numericInput("l1_input", "l1:", value = l1),
+      numericInput("l2_input", "l2:", value = l2),
+      actionButton("guess_Button", "Guess NA Landmarks"),
+      actionButton("submit_imp", "Submit"),
+      actionButton("close_modal", "Close"),
+    ))
+  })
+  
+  observeEvent(input$submit_imp, {
+    if(input$l1_input == ""  || input$l2_input == "" ){
+      shinyalert(title = "Error", 
+                 text = "Please fill all the fields", 
+                 type = "error", 
+                 closeOnClick = "cancel"
+        )
+    }
+    else {
+      l1 <<- input$l1_input
+      l2 <<- input$l2_input
+      shinyalert(title = "Success", 
+                 text = "Your information saved successfully!", 
+                 type = "success", 
+                 closeOnClick = "ok"
+                 
+      )
+      removeModal()
+      }
+    })
+  
+  observeEvent(input$guess_Button, {
+    show_modal_progress_line()
+    
+    ## File path : The current working directory that should include all csv files.
+    ## l1,l2 : The reference anatomic landmarks
+    ## We should give an error if the user did not specify the l1 l2 
+    
+    ## This function impute the missing landmark and fill the given dataset.
+    impute.missing <- function(file_path,l1,l2) { 
+      
+      files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
+      
+      # get any of the data to determine the number of the landmark (I mean the number of row)
+      suppressWarnings(t_data <-  as.data.frame(read.csv(paste(file_path,files[1],sep="/"),header = TRUE,sep = ",")))
+      
+      nf <-  length(files) #number of image
+      nr <-  nrow(t_data) #number of landmark(row)
+      nc <- ncol(t_data) #number of dimension(column)(in our case it is x and y)
+      rm(t_data)
+      #data <- data.frame()
+      
+      
+      #In this part of the code implemented to determine the data that contains 
+      #missing landmark and adding it to the beginning of the list.
+      
+      vector_data <- c()
+      nii<-  0 #null_image_index
+      nli<- 0 # null_landmark_index 
+      #This loop determine the index of the data that contains missing landmark
+      i <- 1
+      for(elem in files){
+        suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header =TRUE,sep = ",")))
+        for(is_null in is.na(temp_data)){
+          if (is_null == TRUE){
+            nii <- i
+            break
+          }
+        }
+        i <- i+1
+      }
+      #Save the null image into a variable
+      suppressWarnings(null_image_data <-  as.data.frame(read.csv(paste(file_path,files[nii],sep="/"),header = TRUE,sep=",")))
+      null_data_frame <-  is.na(null_image_data)
+      
+      #This loop determine the index of the landmark 
+      i <- 1
+      for (boolean in null_data_frame){
+        if(boolean == TRUE){
+          nli <-  i
+          break
+        } 
+        i <- i+1
+      }
+      rm(null_data_frame)
+      i <-  1
+      for(elem in files){
+        if (i != nii){
+          suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header = TRUE,sep = ",")))
+          vector_data <-  c(vector_data, unlist(temp_data,use.names=FALSE))
+        }
+        i <- i+1
+      }
+      
+      #Adding null data to the beginning of the list 
+      
+      vector_data <- c(unlist(null_image_data,use.names = FALSE),vector_data)
+      
+      
+      #Put all data into a structure
+      st_data <-  structure(vector_data,.Dim = as.integer(c(nr,nc,nf)))
+      rm(vector_data)
+      
+      #Determine the landmark that will use as a reference
+      #row,column,sublist
+      xl1<-st_data[l1,1,1] #x coordinate of the l1
+      xl2<-st_data[l2,1,1]  #x coordinate of the l2
+      
+      yl1<-st_data[l1,2,1] #y coordinate of the l1
+      yl2<-st_data[l2,2,1] #y coordinate of the l2
+      
+      #Create bookstein coordinate from the missing data
+      my.dat.book<-bookstein2d(st_data)
+      my.dat.book.cor<-my.dat.book$bshpv
+      #veri<-my.dat.book.cor
+      
+      #Reformat the dataset in order to applying the F statistic.
+      i=1  
+      new_data<-data.frame(matrix(nrow = nf, ncol = 2))
+      colnames(new_data)<-c("x", "y")
+      for (i in 1:nf) {
+        new_data[i,1]<-my.dat.book.cor[nli,1,i]
+        new_data[i,2]<-my.dat.book.cor[nli,2,i]
+      }
+      
+      #Applying the F approach
+      
+      i=2
+      distance_null_to_l1<-matrix(nrow = nf, ncol = 1)
+      for (i in 2:nf) {       
+        temp=my.dat.book.cor[,,i]
+        xc1<-temp[l1,1]  #x-coordinate of the l1 
+        yc1<-temp[l1,2]  #y-coordinate of the l1
+        xc3<-temp[nli,1] #x-coordinate of the null_landmark
+        yc3<-temp[nli,2] #y-coordinate of the null_landmark
+        distance_null_to_l1[i,1]=sqrt((xc3-xc1)^2+(yc3-yc1)^2)#Euclidean distance
+      }
+      
+      distance_null_to_l1<-distance_null_to_l1[-1,] #remove the NA 
+      mean_distance_null_to_l1=mean(distance_null_to_l1) # calculate the mean
+      
+      i=2
+      distance_null_to_l2<-data.frame(matrix(nrow = nf, ncol = 1))
+      for (i in 2:nf)  {       
+        temp=my.dat.book.cor[,,i]
+        xc2<-temp[l2,1]   #x-coordinate of the l2 
+        yc2<-temp[l2,2]   #y-coordinate of the l2
+        xc3<-temp[nli,1]  #x-coordinate of the null_landmark
+        yc3<-temp[nli,2]  #y-coordinate of the null_landmark
+        distance_null_to_l2[i,1]=sqrt((xc3-xc2)^2+(yc3-yc2)^2) #Euclidean distance
+      }
+      distance_null_to_l2<-distance_null_to_l2[-1,] #remove the NA 
+      mean_distance_null_to_l2=mean(distance_null_to_l2) # calculate the mean
+      
+      
+      c=(-1/2)*(mean_distance_null_to_l1^2-mean_distance_null_to_l2^2)  
+      d=sqrt(mean_distance_null_to_l1^2-(c+0.5)^2)    
+      y4<-new_data
+      y4<-as.matrix(y4)
+      y4[1,1]<-c
+      y4[1,2]<-d
+      
+      #Calculate confidence interval
+      d2<-distance_null_to_l1
+      d2lb<-mean_distance_null_to_l1-1.96*(sd(d2)/sqrt(length(d2)))  #### lower bound
+      d2ub<- mean_distance_null_to_l1 +1.96*(sd(d2)/sqrt(length(d2))) #### upper bound
+      
+      d3<-distance_null_to_l2
+      d3lb<- mean_distance_null_to_l2 - 1.96*(sd(d3)/sqrt(length(d3)))  #### lower bound
+      d3ub<- mean_distance_null_to_l2 + 1.96*(sd(d3)/sqrt(length(d3)))  #### upper bound
+      
+      closeAllConnections()
+      
+      counter<-0
+      fstatt<-matrix(byrow=TRUE)
+      ls<-matrix(byrow=TRUE)
+      counterS<-matrix(byrow=TRUE)
+      cs<-matrix(byrow=TRUE)
+      ds<-matrix(byrow=TRUE)
+      closeAllConnections()
+      
+      #Calculate the f-statistic
+      for ( c in seq(d2lb, d2ub, 0.2) )  {
+        for ( d in seq(d3lb, d3ub, 0.2) ) {
+          counter<-counter+1
+          y4[1,1]<-c
+          y4[1,2]<-d
+          gakt=nf*(mean(y4[,1])-mean(y4))^2+nf*(mean(y4[,2])-mean(y4))^2
+          cat(gakt, sep="\n", file="gakt.txt", append=TRUE)
+          sink("gkt.txt")
+          k=2
+          for( i in 1:k){
+            for (j in 1:nf) {
+              t=((y4[j,i]-mean(y4))^2)
+              cat(t, sep="\n", file="gkt.txt", append=TRUE)
+              j=j+1
+            }
+            i=i+1
+          }
+          gkt <- read.table("gkt.txt")
+          suppressWarnings(gkt<-as.numeric(unlist(gkt)))
+          gktson=sum(gkt)
+          gikt=gktson-gakt
+          fstat=((gakt/(k-1))/(gikt/(2*nf-k))) 
+          fstatt[counter]<-fstat
+          closeAllConnections()
+          ##ls[counter]<-l
+          counterS[counter]<-counter
+          cs[counter]<-c
+          ds[counter]<-d
+        }
+        closeAllConnections()
+      }
+      
+      # Arrange the result for Min(F) criterion
+      ts<-rbind(counterS, cs, ds, fstatt)
+      ts<-t(ts)
+      ts<-as.data.frame(ts)
+      colnames(ts)<-c("COUNTER", "X", "Y", "F")
+      minn<-ts %>% 
+        slice(which.min(F))
+      
+      
+      #Reverting from bookstein coordinates to original coordinates for Min(F)
+      D=(xl2-xl1)^2+(yl2-yl1)^2
+      A=xl2-xl1
+      B=yl2-yl1
+      ub<-  minn$X
+      vb<-  minn$Y
+      C= (ub+0.5)
+      
+      xj2={A*D*C+xl1*(A^2+B^2)-B*vb*D}/(A^2+B^2) #Predicted x-coordinate
+      
+      yj2={D*C-A*{{A*D*C+xl1*(A^2+B^2)-B*vb*D}/(A^2+B^2)}+A*xl1+B*yl1}/B #Predicted y-coordinate
+      
+      
+      xmin<-as.numeric(unlist(xj2))
+      ymin<-as.numeric(unlist(yj2))
+      
+      return(c(xmin,ymin))
+    }
+    remove_modal_progress()
+    result <-impute.missing(file_path,l1,l2)
+    if(!is.null(result)){
+      files <- list.files(file_path, pattern = '.csv')
+      data <- read.csv(file.path(file_path, files[1]))
+      data[is.na(data$x), "x"] <- result[[1]]
+      data[is.na(data$y), "y"] <- result[[2]]
+      write.csv(data, file = file.path(file_path, paste0("predicted_", files[1])), row.names = FALSE)
+      
+      shinyalert("Success!", "Predicted landmark are saved.", type = "success")
+    }
+    else{
+      shinyalert("Warning!", "Please check that there are csvs in the output folder.", type = "warning")
+    }
+  })
   
   # When input is detected, it shows a modal dialog using the "showModal" function. The modal dialog contains a title, a text input field for "name_input", a select input field for "resolution_input" with options from "screen_resolution_options" 
   # and pre-selected as the first option, a submit button with the id "submit_id" and no footer. 
@@ -21,7 +282,6 @@ server <- function(input, output, session) {
       footer = NULL
     ))
   })
-  
   
   # When input is detected, it checks if the "name_input" or "resolution_input" fields are empty. If either field is empty, it displays an error message using the "shinyalert" function.
   # If both fields are filled, it creates a "user_info" list with the input values, saves the list to the "user_info.rds" file and shows a success message using the "shinyalert" function.
@@ -60,7 +320,6 @@ server <- function(input, output, session) {
     removeModal()
   })
   
-  
   # If the file exists, it reads the "name" and "resolution" values from the file and assigns them to the variables "user_name" and "screen_resolution" respectively. 
   # The "resolution" value is split by the "x" character and the first part is assigned to the "width" variable, while the second part is assigned to the "height" variable. 
   # If the file does not exist, the "screen_resolution" variable is assigned the value of 1920/1080.
@@ -83,9 +342,12 @@ server <- function(input, output, session) {
     df <- data.frame(x, y)
     df <- rbind(df, data.frame(x = "", y = ""))
     file = paste0(image_names$data[index$current],"_",user_name,".csv")
-    write.csv(df, file = file, row.names = FALSE)
-    write.table(results_df, file = file, col.names=FALSE, sep=",", append=TRUE)
-    shinyalert("Success!", "Image points have been saved.", type = "success")
+    if(!dir.exists("output")){
+      dir.create("output")
+    }
+    write.csv(df, file = paste0("output/", file), row.names = FALSE)
+    write.table(results_df, file = paste0("output/", file), col.names=FALSE, sep=",", append=TRUE)
+    shinyalert("Success!", "Image points have been saved to 'output' folder.", type = "success")
   })
   
   colnames(point) <- c("id","x","y")
@@ -287,9 +549,6 @@ server <- function(input, output, session) {
       }
     }
   })
-  
-  
-  
   
   # Function that listens to the "input$clear_button" event. When this event is triggered, 
   # the function clears the values of xy_new$x and xy_new$y, by setting them to numeric(0) which is an empty numeric vecto

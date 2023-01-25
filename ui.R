@@ -8,12 +8,17 @@ library(raster)
 library(scales)
 library(plotly)
 library(png)
-library(sp)
-library(ggplot2)
-library(fontawesome)
-library(magick)
+library(shapes)
+library(dplyr)
+library(shinybusy)
 
 ui <- fluidPage(
+  add_busy_bar(
+    timeout = 1000,
+    color = "#112446",
+    centered = FALSE,
+    height = "8px"
+  ),
   # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
   useShinyjs(),
   tags$head(
@@ -43,8 +48,8 @@ ui <- fluidPage(
     wellPanel(
       fileInput(
         inputId = "image_file",        label = NULL, buttonLabel = "Upload Image", multiple = TRUE, accept = ".jpg",),
-      fileInput(
-        inputId = "imputation_Button", label = NULL, buttonLabel = HTML("Missing Value<br/>Imputation"), multiple = TRUE, accept = ".csv"),
+      actionButton(
+        icon = NULL, inputId = "imputation_Button", width = 140, class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
       actionButton(
         icon = NULL, inputId = "next_Button"      , width = 140, class = "all_action_button", label = "Next Image"),
       actionButton(
