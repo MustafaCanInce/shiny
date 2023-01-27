@@ -260,6 +260,7 @@ server <- function(input, output, session) {
       data[is.na(data$x), "x"] <- result[[1]]
       data[is.na(data$y), "y"] <- result[[2]]
       write.csv(data, file = file.path(file_path, paste0("predicted_", files[1])), row.names = FALSE)
+      lapply(list.files(path = tempdir(), pattern = "file"), close)
       
       shinyalert("Success!", "Predicted landmark are saved.", type = "success")
     }
