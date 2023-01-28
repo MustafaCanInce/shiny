@@ -55,7 +55,7 @@ server <- function(input, output, session) {
       files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
       
       # get any of the data to determine the number of the landmark (I mean the number of row)
-      suppressWarnings(t_data <-  as.data.frame(read.csv(paste(file_path,files[1],sep="/"),header = TRUE,sep = ",")))
+      suppressWarnings(t_data <-  as.data.frame(read.csv(paste(file_path,files[1],sep="/"),header = TRUE,sep = ",",comment.char = "#")))
       
       nf <-  length(files) #number of image
       nr <-  nrow(t_data) #number of landmark(row)
@@ -73,7 +73,7 @@ server <- function(input, output, session) {
       #This loop determine the index of the data that contains missing landmark
       i <- 1
       for(elem in files){
-        suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header =TRUE,sep = ",")))
+        suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header =TRUE,sep = ",",comment.char = "#")))
         for(is_null in is.na(temp_data)){
           if (is_null == TRUE){
             nii <- i
@@ -83,7 +83,7 @@ server <- function(input, output, session) {
         i <- i+1
       }
       #Save the null image into a variable
-      suppressWarnings(null_image_data <-  as.data.frame(read.csv(paste(file_path,files[nii],sep="/"),header = TRUE,sep=",")))
+      suppressWarnings(null_image_data <-  as.data.frame(read.csv(paste(file_path,files[nii],sep="/"),header = TRUE,sep=",",comment.char = "#")))
       null_data_frame <-  is.na(null_image_data)
       
       #This loop determine the index of the landmark 
@@ -99,7 +99,7 @@ server <- function(input, output, session) {
       i <-  1
       for(elem in files){
         if (i != nii){
-          suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header = TRUE,sep = ",")))
+          suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header = TRUE,sep = ",",comment.char = "#")))
           vector_data <-  c(vector_data, unlist(temp_data,use.names=FALSE))
         }
         i <- i+1
@@ -256,7 +256,7 @@ server <- function(input, output, session) {
     result <-impute.missing(file_path,l1,l2)
     if(!is.null(result)){
       files <- list.files(file_path, pattern = '.csv')
-      data <- read.csv(file.path(file_path, files[1]))
+      data <- read.csv(file.path(file_path, files[1]),comment.char = "#")
       data[is.na(data$x), "x"] <- result[[1]]
       data[is.na(data$y), "y"] <- result[[2]]
       write.csv(data, file = file.path(file_path, paste0("predicted_", files[1])), row.names = FALSE)
@@ -341,13 +341,28 @@ server <- function(input, output, session) {
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
-    df <- rbind(df, data.frame(x = "", y = ""))
+    #df <- rbind(df, data.frame(x = "", y = ""))
     file = paste0(image_names$data[index$current],"_",user_name,".csv")
     if(!dir.exists("output")){
       dir.create("output")
     }
-    write.csv(df, file = paste0("output/", file), row.names = FALSE)
-    write.table(results_df, file = paste0("output/", file), col.names=FALSE, sep=",", append=TRUE)
+    results_df_string <- ""
+    results_df_string <- capture.output(print(results_df))
+    results_df_string <- paste( "#", results_df_string,sep="")
+    results_df_string <- paste(results_df_string, collapse = "\n")
+    
+    file_con <- file(paste0("output/", file), open = "w")
+    
+    write.csv(df, file = file_con, row.names = FALSE)
+    writeLines(c(results_df_string, ""), file_con)
+    close(file_con)
+    
+    
+    
+    
+    
+    
+    #write.table(results_df, file = paste0("output/", file), col.names=FALSE, sep=",", row.names = FALSE, append=TRUE)
     shinyalert("Success!", "Image points have been saved to 'output' folder.", type = "success")
   })
   
@@ -442,6 +457,7 @@ server <- function(input, output, session) {
   observeEvent(input$next_Button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
+    results_df <<- data.frame(new_result = numeric(), unitsofmetric = character())
     if(index$current < length(images_path$data)){
       index$current <<- index$current + 1
       ratio <<- 0
@@ -456,6 +472,7 @@ server <- function(input, output, session) {
   observeEvent(input$prev_Button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
+    results_df <<- NULL 
     if(index$current > 1){
       index$current <<- index$current - 1
       ratio <<- 0
@@ -512,7 +529,7 @@ server <- function(input, output, session) {
   output$distplot <- renderPlot({
     coord <- tibble(x = xy_new$x, y = xy_new$y)
     if (length(images_path$data) == 0){
-      return(plot(NULL, xlim = c(0, 1), ylim = c(0, 1), xlab = "x", ylab = "y", main = "")) 
+      return() 
     }
     else {
       img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
@@ -536,7 +553,7 @@ server <- function(input, output, session) {
     point <- rbind(point, coordinates)
     plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(dim(img)[1],0), xlab="X", ylab="Y", xaxt = "n")
     axis(3, at = seq(0, dim(img)[2], by = 50))
-    axis(2, at = seq(dim(img)[1], 0, by = -50))
+    axis(2, at = seq(dim(img)[1], 0, by = -50), las = 2)
     rasterImage(img, 0, dim(img)[1], dim(img)[2], 0)
     
     #rasterImage(img, 0, 0, dim(img)[1]*screen_resolution, dim(img)[2],resize=F)
