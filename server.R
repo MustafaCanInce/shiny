@@ -516,14 +516,59 @@ server <- function(input, output, session) {
   
   # Creates a "distplot" plot output, plot is responsive to clicks with an event handler named "plot_click"
   # and it allows the user to select a range of x-coordinates using the brush tool, with an event handler named "plot_brush".
+  height <- 0
+  width <- 0
   output$plot.ui <- renderUI({
-    plotOutput("distplot",
-               click = "plot_click",
-               height = "80vh",
-               width = "160vh",
-               brush = "plot_brush",
-    )
+    if (length(images_path$data) == 0){
+      return() 
+    }
+    else {
+      img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
+      if(img_extension == "jpg" || img_extension == "jpeg"){
+        img <- readJPEG(images_path$data[[index$current]])
+      } 
+      else if(img_extension == "png"){
+        img <- readPNG(images_path$data[[index$current]])
+      }
+      else if(img_extension == "tif" || img_extension == "tiff"){
+        img <- tiff::readTIFF(images_path$data[[index$current]])
+      }
+      else {
+        shinyalert("Oops!", "Invalid file type. Please upload JPEG, JPG, PNG or Tiff image.", type = "error")
+        return()
+      }
+    }
+    height <- dim(img)[1]
+    width <- dim(img)[2]
+    screen_resolution <- (width/height)
+    if (screen_resolution <= 1.15 || width <= 700){
+      height = height * 1.5
+      width = width * 1.5
+    }
+    else if(screen_resolution > 1.15 && width < 1500){
+      height = height * 1.1
+      width = width * 1.1
+    }
+    else if(screen_resolution > 1.15 && width < 2000){
+      height = height * 0.75
+      width = width * 0.75
+    }
+    else if ( width >= 2000){
+      height = height * 0.25
+      width = width * 0.25
+    }
+    else{
+      height = height
+      width = width
+    }
     
+    tags$div(style = "position: absolute; left: 20%;", 
+             plotOutput("distplot",
+                        click = "plot_click",
+                        height= height,
+                        width = width,
+                        brush = "plot_brush")
+             )
   })
   
   # Watch for a click event on the plot created by the "plot_click" event handler. When a click event occurs,
@@ -549,6 +594,7 @@ server <- function(input, output, session) {
     tibble(x = xy_new$x, y = xy_new$y)
   })
   
+
   # First creates a new tibble named coord with x and y coordinates stored in the xy_new$x and xy_new$y vectors. Then, it checks if there are any images available, if not, it returns nothing. 
   # If there are images, it reads the image located at the current index in images_path$data and assigns it to the variable img. Then it creates variables r and c to store the height and width of the image respectively. 
   # It creates a dataframe named points_df and assigns the values of x and y from xy_new. It also creates a variable coordinates and assigns the values of x and y from xy_new. It concatenates the new coordinates to the point variable.
@@ -577,19 +623,26 @@ server <- function(input, output, session) {
     height <- dim(img)[1]
     width <- dim(img)[2]
     screen_resolution <<- (width/height)
-    
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
-    plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(dim(img)[1],0), xlab="X", ylab="Y", xaxt = "n")
-    axis(3, at = seq(0, dim(img)[2], by = 50))
-    axis(2, at = seq(dim(img)[1], 0, by = -50), las = 2)
-    rasterImage(img, 0, dim(img)[1], dim(img)[2], 0)
+    plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(0, dim(img)[1]), xlab="X", ylab="Y", xaxt = "n", yaxt = "n")
+    #axis(3, at = seq(0, dim(img)[2], by = 50))
+    #axis(2, at = seq(dim(img)[1], 0, by = -50), las = 2)
     
-    #rasterImage(img, 0, 0, dim(img)[1]*screen_resolution, dim(img)[2],resize=F)
-    # "cex = 2" sets the size of the plotted points to 2 times the default size. "pch = 20" sets the plotted points to a filled circle shape.
+    #at_values <- seq(0, dim(img)[2], by = 50)
+    #at_values <- c(0, at_values + 10 - at_values %% 10,0)
+    #axis(3, at = at_values)
+    #
+    #at_values <- seq(dim(img)[1], 0, by = -50)
+    #at_values <- c(at_values + 10 - at_values %% 10, 0)
+    #axis(2, at = at_values, las = 2)
+    
+    axis(3, at=seq(0, dim(img)[2], by=50))
+    axis(2, at=seq(0, dim(img)[1], by=50), las=2)
+    
+    rasterImage(img, 0, 0, dim(img)[2], dim(img)[1])
     points(coord$x, coord$y, col=c("red"), cex=2, pch=20)
-    
     
     if(nrow(coord)>0){
       for (i in 1:nrow(coord)) {

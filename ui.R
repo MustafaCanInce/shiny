@@ -1,17 +1,17 @@
 library(shiny);
 library(shinyWidgets)
 library(shinyalert)
+library(shinybusy)
+library(shinyjs)
 library(tibble)
 library(jpeg)
-library(shinyjs)
+library(tiff)
+library(png)
 library(raster)
 library(scales)
 library(plotly)
-library(png)
 library(shapes)
 library(dplyr)
-library(shinybusy)
-library(tiff)
 
 ui <- fluidPage(
   add_busy_bar(
@@ -27,7 +27,8 @@ ui <- fluidPage(
       .all_action_button {
         border-radius: 20px;
         padding: 20px;
-         margin: 10px;
+        margin: 10px;
+        height: 6vh;
       }
                 "))
   ),
@@ -50,24 +51,24 @@ ui <- fluidPage(
       fileInput(
         inputId = "image_file",        label = NULL, buttonLabel = "Upload Image", multiple = TRUE, accept = ".jpg",),
       actionButton(
-        icon = NULL, inputId = "imputation_Button", width = 140, class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
+        icon = NULL, inputId = "imputation_Button", width = "14vh", class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
       actionButton(
-        icon = NULL, inputId = "next_Button"      , width = 140, class = "all_action_button", label = "Next Image"),
+        icon = NULL, inputId = "next_Button"      , width = "14vh", class = "all_action_button", label = "Next Image"),
       actionButton(
-        icon = NULL, inputId = "prev_Button"      , width = 140, class = "all_action_button", label = "Previous Image"),
+        icon = NULL, inputId = "prev_Button"      , width = "14vh", class = "all_action_button", label = "Previous Image"),
       actionButton(
-        icon = NULL, inputId = "missing_Button"   , width = 140, class = "all_action_button", label = "Add Missing Point"),
+        icon = NULL, inputId = "missing_Button"   , width = "14vh", class = "all_action_button", label = "Add Missing Point"),
       actionButton(
-        icon = NULL, inputId = "undo_Button"      , width = 140, class = "all_action_button", label = "Undo Last Point"),
+        icon = NULL, inputId = "undo_Button"      , width = "14vh", class = "all_action_button", label = "Undo Last Point"),
       actionButton(
-        icon = NULL, inputId = "clear_button"     , width = 140, class = "all_action_button", label = "Clear Points"),
+        icon = NULL, inputId = "clear_button"     , width = "14vh", class = "all_action_button", label = "Clear Points"),
       actionButton(
-        icon = NULL, inputId = "scale_Button"     , width = 140, class = "all_action_button", label = "Scale"),
+        icon = NULL, inputId = "scale_Button"     , width = "14vh", class = "all_action_button", label = "Scale"),
       actionButton(
-        icon = NULL, inputId = "done_Button"      , width = 140, class = "all_action_button", label = "Done"),
+        icon = NULL, inputId = "done_Button"      , width = "14vh", class = "all_action_button", label = "Done"),
       actionButton(
-        icon = NULL, inputId = "settings_id"      , width = 140, class = "all_action_button", label = "Settings")
+        icon = NULL, inputId = "settings_id"      , width = "14vh", class = "all_action_button", label = "Settings")
     ),
     
-    top=100, height=200, left='170vh', width=200),
+    top="10%", left = "3vh", width="20vh"),
 )
