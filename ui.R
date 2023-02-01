@@ -11,6 +11,7 @@ library(png)
 library(shapes)
 library(dplyr)
 library(shinybusy)
+library(tiff)
 
 ui <- fluidPage(
   add_busy_bar(

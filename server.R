@@ -336,12 +336,46 @@ server <- function(input, output, session) {
     }
   }
   
-  # The non-zero x and y values from xy_new data to a CSV file with the current index's filename from image_names, and shows an alert.
-  observeEvent(input$done_Button, {
+  observeEvent(input$done_Button,{
+    showModal(modalDialog(
+      title = "Done Settings",
+      actionButton("CsvWithscale_Button", "save csv files at scale"),
+      actionButton("CsvWithoutscale_Button", "save csv files without scale")
+    ))
+  })
+  
+  observeEvent(input$CsvWithscale_Button, {
+
+    
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
-    #df <- rbind(df, data.frame(x = "", y = ""))
+    df_new <- df * known_distance/ratio
+    file = paste0("scale_",image_names$data[index$current],"_",user_name,".csv")
+    if(!dir.exists("output")){
+      dir.create("output")
+    }
+    results_df_string <- ""
+    results_df_string <- capture.output(print(results_df))
+    results_df_string <- paste( "#", results_df_string,sep="")
+    results_df_string <- paste(results_df_string, collapse = "\n")
+    
+    file_con <- file(paste0("output/", file), open = "w")
+    
+    write.csv(df_new, file = file_con, row.names = FALSE)
+    writeLines(c(results_df_string, ""), file_con)
+    writeLines(c("measured length ", ratio, ""), file_con)
+    writeLines(c("scale factor  ", known_distance/ratio, ""), file_con)
+    close(file_con)
+    shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
+  })
+  
+  # The non-zero x and y values from xy_new data to a CSV file with the current index's filename from image_names, and shows an alert.
+  observeEvent(input$CsvWithoutscale_Button, {
+    
+    x <- xy_new$x[xy_new$x != 0]
+    y <- xy_new$y[xy_new$y != 0]
+    df <- data.frame(x, y)
     file = paste0(image_names$data[index$current],"_",user_name,".csv")
     if(!dir.exists("output")){
       dir.create("output")
@@ -356,14 +390,7 @@ server <- function(input, output, session) {
     write.csv(df, file = file_con, row.names = FALSE)
     writeLines(c(results_df_string, ""), file_con)
     close(file_con)
-    
-    
-    
-    
-    
-    
-    #write.table(results_df, file = paste0("output/", file), col.names=FALSE, sep=",", row.names = FALSE, append=TRUE)
-    shinyalert("Success!", "Image points have been saved to 'output' folder.", type = "success")
+    shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
   })
   
   colnames(point) <- c("id","x","y")
@@ -395,7 +422,7 @@ server <- function(input, output, session) {
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   
   ratio <- 0
-  results_df <- data.frame(new_result = numeric(), unitsofmetric = character())
+  results_df <- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
   observeEvent(input$scale_Button, {
     
     if(length(xy_new$x) >= 2 && ratio == 0) {
@@ -416,16 +443,16 @@ server <- function(input, output, session) {
       delta_y <- xy_new$y[length(xy_new$y)] - xy_new$y[length(xy_new$y)-1]
       result <- sqrt(delta_x^2 + delta_y^2)
       if(unitsofmetric == "cm"){
-        new_result <- result / ratio
+        distance_between_two_landmarks <- result / ratio
       } else if(unitsofmetric == "mm"){
         result = result * 100
-        new_result <- result / ratio
+        distance_between_two_landmarks <- result / ratio
       } else if(unitsofmetric == "m"){
         result = result / 100
-        new_result <- result / ratio
+        distance_between_two_landmarks <- result / ratio
       }
-      showNotification(paste0("scaling was successful measured distance: ",new_result," ",unitsofmetric))
-      results_df <<- results_df %>% add_row(new_result = new_result, unitsofmetric = unitsofmetric)
+      showNotification(paste0("scaling was successful measured distance: ",distance_between_two_landmarks," ",unitsofmetric))
+      results_df <<- results_df %>% add_row(distance_between_two_landmarks = distance_between_two_landmarks, unitsofmetric = unitsofmetric)
       
       for(i in 1:2){
         xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
@@ -433,7 +460,7 @@ server <- function(input, output, session) {
       }
     }
     else {
-      showNotification(paste0("Click on at least two points on the plot and then press the scale button."))
+      showNotification(paste0("Click on at least two landmarks on the plot and then press the scale button."))
       
     }
   })
@@ -457,7 +484,7 @@ server <- function(input, output, session) {
   observeEvent(input$next_Button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
-    results_df <<- data.frame(new_result = numeric(), unitsofmetric = character())
+    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
     if(index$current < length(images_path$data)){
       index$current <<- index$current + 1
       ratio <<- 0
@@ -472,7 +499,7 @@ server <- function(input, output, session) {
   observeEvent(input$prev_Button, {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
-    results_df <<- NULL 
+    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
     if(index$current > 1){
       index$current <<- index$current - 1
       ratio <<- 0
@@ -485,7 +512,7 @@ server <- function(input, output, session) {
   # Function to set the shiny.maxRequestSize option to 100 * 1024 ^ 2. This sets the maximum allowed file size to 100 megabytes.
   options(shiny.maxRequestSize=100*1024^2) 
   
-  xy_new <- reactiveValues(x= numeric(0), y = numeric(0), line=numeric(0)) # add new points
+  xy_new <- reactiveValues(x= numeric(0), y = numeric(0), line=numeric(0)) # add new landmarks
   
   # Creates a "distplot" plot output, plot is responsive to clicks with an event handler named "plot_click"
   # and it allows the user to select a range of x-coordinates using the brush tool, with an event handler named "plot_brush".
@@ -517,7 +544,7 @@ server <- function(input, output, session) {
   
   # Listens to the "plot_click" event and creates a new tibble with the x and y coordinates stored in the xy_new$x and xy_new$y vectors, respectively. 
   # It will update the tibble every time the event is triggered,
-  # This tibble is used to plot the points on the plot.
+  # This tibble is used to plot the landmarks on the plot.
   pointsforplot <- eventReactive(input$plot_click, ignoreNULL = F, {
     tibble(x = xy_new$x, y = xy_new$y)
   })
@@ -538,6 +565,9 @@ server <- function(input, output, session) {
       } 
       else if(img_extension == "png"){
         img <- readPNG(images_path$data[[index$current]])
+      }
+      else if(img_extension == "tif" || img_extension == "tiff"){
+        img <- tiff::readTIFF(images_path$data[[index$current]])
       }
       else {
         shinyalert("Oops!", "Invalid file type. Please upload JPEG,JPG or PNG image.", type = "error")
@@ -563,7 +593,7 @@ server <- function(input, output, session) {
     
     if(nrow(coord)>0){
       for (i in 1:nrow(coord)) {
-        text(coord$x[i], coord$y[i], labels = i-1, pos = 4, col = "red", cex = 2)
+        text(coord$x[i], coord$y[i], labels = i, pos = 4, col = "red", cex = 2)
       }
     }
   })
