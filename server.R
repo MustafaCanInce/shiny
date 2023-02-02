@@ -363,9 +363,9 @@ server <- function(input, output, session) {
     file_con <- file(paste0("output/", file), open = "w")
     
     write.csv(df_new, file = file_con, row.names = FALSE)
-    writeLines(c(results_df_string, ""), file_con)
-    writeLines(c("measured length ", ratio, ""), file_con)
-    writeLines(c("scale factor  ", known_distance/ratio, ""), file_con)
+    writeLines(c(results_df_string), file_con)
+    writeLines(c("# measured length ", paste0("#", ratio)), file_con)
+    writeLines(c("# scale factor ", paste0("#", known_distance/ratio)), file_con)
     close(file_con)
     shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
   })
@@ -388,7 +388,7 @@ server <- function(input, output, session) {
     file_con <- file(paste0("output/", file), open = "w")
     
     write.csv(df, file = file_con, row.names = FALSE)
-    writeLines(c(results_df_string, ""), file_con)
+    writeLines(c(results_df_string), file_con)
     close(file_con)
     shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
   })
@@ -541,32 +541,44 @@ server <- function(input, output, session) {
     height <- dim(img)[1]
     width <- dim(img)[2]
     screen_resolution <- (width/height)
-    if (screen_resolution <= 1.15 || width <= 700){
-      height = height * 1.5
-      width = width * 1.5
-    }
-    else if(screen_resolution > 1.15 && width < 1500){
-      height = height * 1.1
-      width = width * 1.1
-    }
-    else if(screen_resolution > 1.15 && width < 2000){
-      height = height * 0.75
-      width = width * 0.75
-    }
-    else if ( width >= 2000){
-      height = height * 0.25
-      width = width * 0.25
-    }
-    else{
-      height = height
-      width = width
-    }
+    #if (screen_resolution <= 1.15 || width <= 700){
+    #  height = height * 1.5
+    #  width = width * 1.5
+    #}
+    #else if(screen_resolution > 1.15 && screen_resolution <= 1.4){
+    #  if(width <= 1000){
+    #    height = height * 1.1
+    #    width = width * 1.1
+    #  }
+    #  else if (width <= 1250){
+    #    height = height * 0.9
+    #    width = width * 0.9
+    #  }
+    #  else if ( width >= 1500){
+    #    height = height * 0.6
+    #    width = width * 0.6
+    #  }
+    #  else if ( width >= 1750){
+    #    height = height * 0.2
+    #    width = width * 0.2
+    #  }
+    #}
+    #else if(screen_resolution > 1.4){
+    #  height = height * 0.2
+    #  width = width * 0.2
+    #}
+    #else{
+    #  height = height
+    #  width = width
+    #}
+    
+    
     
     tags$div(style = "position: absolute; left: 20%;", 
              plotOutput("distplot",
                         click = "plot_click",
-                        height= height,
-                        width = width,
+                        height= "90vh", #height
+                        width = "100vh", #vidth
                         brush = "plot_brush")
              )
   })

@@ -26,7 +26,7 @@ ui <- fluidPage(
     tags$style(HTML("
       .all_action_button {
         border-radius: 20px;
-        padding: 20px;
+        padding: 10px;
         margin: 10px;
         height: 6vh;
       }
@@ -51,23 +51,23 @@ ui <- fluidPage(
       fileInput(
         inputId = "image_file",        label = NULL, buttonLabel = "Upload Image", multiple = TRUE, accept = ".jpg",),
       actionButton(
-        icon = NULL, inputId = "imputation_Button", width = "14vh", class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
+        icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
       actionButton(
-        icon = NULL, inputId = "next_Button"      , width = "14vh", class = "all_action_button", label = "Next Image"),
+        icon = NULL, inputId = "next_Button"      , width = "15vh", class = "all_action_button", label = "Next Image"),
       actionButton(
-        icon = NULL, inputId = "prev_Button"      , width = "14vh", class = "all_action_button", label = "Previous Image"),
+        icon = NULL, inputId = "prev_Button"      , width = "15vh", class = "all_action_button", label = "Previous Image"),
       actionButton(
-        icon = NULL, inputId = "missing_Button"   , width = "14vh", class = "all_action_button", label = "Add Missing Point"),
+        icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = "Add Missing Point"),
       actionButton(
-        icon = NULL, inputId = "undo_Button"      , width = "14vh", class = "all_action_button", label = "Undo Last Point"),
+        icon = NULL, inputId = "undo_Button"      , width = "15vh", class = "all_action_button", label = "Undo Last Point"),
       actionButton(
-        icon = NULL, inputId = "clear_button"     , width = "14vh", class = "all_action_button", label = "Clear Points"),
+        icon = NULL, inputId = "clear_button"     , width = "15vh", class = "all_action_button", label = "Clear Points"),
       actionButton(
-        icon = NULL, inputId = "scale_Button"     , width = "14vh", class = "all_action_button", label = "Scale"),
+        icon = NULL, inputId = "scale_Button"     , width = "15vh", class = "all_action_button", label = "Scale"),
       actionButton(
-        icon = NULL, inputId = "done_Button"      , width = "14vh", class = "all_action_button", label = "Done"),
+        icon = NULL, inputId = "done_Button"      , width = "15vh", class = "all_action_button", label = "Done"),
       actionButton(
-        icon = NULL, inputId = "settings_id"      , width = "14vh", class = "all_action_button", label = "Settings")
+        icon = NULL, inputId = "settings_id"      , width = "15vh", class = "all_action_button", label = "Settings")
     ),
     
     top="10%", left = "3vh", width="20vh"),
