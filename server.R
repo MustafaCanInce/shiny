@@ -10,6 +10,18 @@ server <- function(input, output, session) {
   l1 <- 1
   l2 <- 2
   
+  output$file_names <- renderPrint({
+    file_list <- input$image_file
+    if (is.null(file_list)) {
+      return("")
+    } else {
+      file_names <- file_list$name
+      file_names <- gsub("\\\\", "/", file_names)  # Windows pathlerindeki ters slaşları düzeltir
+      paste(file_names, collapse = "<br>")
+    }
+  })
+  
+  
   observeEvent(input$imputation_Button, {
     showModal(modalDialog(
       title = "Imputation Settings",
@@ -412,7 +424,6 @@ server <- function(input, output, session) {
   
   
   
-  
   # Captures the selected range of x-axis coordinates from a plot brush and calculates the scale. A variable "known_distance" is set to 1 cm and "known_pixels" is set to 37.7957517575025 pixels. 
   # A scale factor is calculated by dividing known_distance by known_pixels and multiplying by "screen_resolution". 
   # It creates an observer that listens to the "scale_Button" input. When the input is detected it checks if two points are selected on the x-axis of the plot. 
@@ -572,15 +583,22 @@ server <- function(input, output, session) {
     #  width = width
     #}
     
+    plot_size <- input$plot_size
     
+    height <- plot_size
+    width <- dim(img)[2] * (plot_size / dim(img)[1])
     
-    tags$div(style = "position: absolute; left: 20%;", 
-             plotOutput("distplot",
-                        click = "plot_click",
-                        height= "90vh", #height
-                        width = "100vh", #vidth
-                        brush = "plot_brush")
-             )
+    tags$div(
+      style = "position: absolute; left: 20%;", 
+      plotOutput(
+        "distplot",
+        click = "plot_click",
+        height= height, #height
+        width = width, #vidth
+        brush = "plot_brush"
+      )
+    )
+    
   })
   
   # Watch for a click event on the plot created by the "plot_click" event handler. When a click event occurs,
