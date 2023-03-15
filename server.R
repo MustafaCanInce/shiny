@@ -549,57 +549,46 @@ server <- function(input, output, session) {
         return()
       }
     }
-    height <- dim(img)[1]
-    width <- dim(img)[2]
-    screen_resolution <- (width/height)
-    #if (screen_resolution <= 1.15 || width <= 700){
-    #  height = height * 1.5
-    #  width = width * 1.5
-    #}
-    #else if(screen_resolution > 1.15 && screen_resolution <= 1.4){
-    #  if(width <= 1000){
-    #    height = height * 1.1
-    #    width = width * 1.1
-    #  }
-    #  else if (width <= 1250){
-    #    height = height * 0.9
-    #    width = width * 0.9
-    #  }
-    #  else if ( width >= 1500){
-    #    height = height * 0.6
-    #    width = width * 0.6
-    #  }
-    #  else if ( width >= 1750){
-    #    height = height * 0.2
-    #    width = width * 0.2
-    #  }
-    #}
-    #else if(screen_resolution > 1.4){
-    #  height = height * 0.2
-    #  width = width * 0.2
-    #}
-    #else{
-    #  height = height
-    #  width = width
-    #}
+    #height <- dim(img)[1]
+    #width <- dim(img)[2]
+    #screen_resolution <- (width/height)
+    
     
     plot_size <- input$plot_size
     
-    height <- plot_size
-    width <- dim(img)[2] * (plot_size / dim(img)[1])
+    height <- plot_size * 25
+    width <- dim(img)[2] * (plot_size / dim(img)[1]) * 25
+    
+    if (is.na(height) || height < 0 || is.na(width) || width < 0) {
+      return(NULL) 
+    }
     
     tags$div(
       style = "position: absolute; left: 20%;", 
       plotOutput(
         "distplot",
         click = "plot_click",
-        height= height, #height
-        width = width, #vidth
-        brush = "plot_brush"
+        height= height,
+        width = width,
+        hover = "plot_hover"
       )
     )
     
   })
+  
+  output$coords <- renderPrint({
+    input$plot_hover
+  })
+  
+  observe({
+    coords <- input$plot_hover
+    if (!is.null(coords)) {
+      output$coords <- renderText({
+        paste0("Hover: ", "X: ", round(coords$x,4), " Y: ", round(coords$y,4))
+      })
+    }
+  })
+  
   
   # Watch for a click event on the plot created by the "plot_click" event handler. When a click event occurs,
   # it checks that the event is not null and if it is not, it isolates the event by creating a new environment.
@@ -668,8 +657,8 @@ server <- function(input, output, session) {
     #at_values <- c(at_values + 10 - at_values %% 10, 0)
     #axis(2, at = at_values, las = 2)
     
-    axis(3, at=seq(0, dim(img)[2], by=50))
-    axis(2, at=seq(0, dim(img)[1], by=50), las=2)
+    axis(3, at = seq(0, dim(img)[2], by=50))
+    axis(2, at = seq(0, dim(img)[1], by=50), las=2)
     
     rasterImage(img, 0, 0, dim(img)[2], dim(img)[1])
     points(coord$x, coord$y, col=c("red"), cex=2, pch=20)

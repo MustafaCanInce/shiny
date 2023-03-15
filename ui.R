@@ -22,7 +22,7 @@ ui <- fluidPage(
   fluidRow(
     column(width = 12,
            # main panel
-           uiOutput(outputId = "plot.ui", style = "height: auto; width: auto; position: fixed; top: 10vh; left: 21vh;")
+           uiOutput(outputId = "plot.ui", style = "height: auto; width: auto; position: fixed; top: 5vh; left: 21vh;")
            
            
     ),
@@ -30,14 +30,9 @@ ui <- fluidPage(
            # left panel
            absolutePanel(
              wellPanel(
-               fileInput(
-                 inputId = "image_file",
-                 label = NULL,
-                 multiple = TRUE,
-                 accept = c(".JPG", ".JPEG", ".PNG", ".TIF")
-               ),
+               fileInput(inputId = "image_file", label = NULL, multiple = TRUE, accept = c(".JPG", ".JPEG", ".PNG", ".TIF")),
                verbatimTextOutput("file_names"),
-               sliderInput("plot_size", "Plot Size", min = 1000, max = 2000, value = 500, step = 50),
+               sliderInput(inputId = "plot_size", "Plot Size", min = 0, max = 100, value = 50, step = 5),
                actionButton(
                  icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
                actionButton(
@@ -45,27 +40,22 @@ ui <- fluidPage(
                actionButton(
                  icon = NULL, inputId = "prev_Button"      , width = "15vh", class = "all_action_button", label = "Previous Image"),
                actionButton(
-                 icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = "Add Missing Point"),
+                 icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = "Add Missing Landmark"),
                actionButton(
-                 icon = NULL, inputId = "undo_Button"      , width = "15vh", class = "all_action_button", label = "Undo Last Point"),
+                 icon = NULL, inputId = "undo_Button"      , width = "15vh", class = "all_action_button", label = "Undo Last Landmark"),
                actionButton(
-                 icon = NULL, inputId = "clear_button"     , width = "15vh", class = "all_action_button", label = "Clear Points"),
+                 icon = NULL, inputId = "clear_button"     , width = "15vh", class = "all_action_button", label = "Clear Landmarks"),
                actionButton(
                  icon = NULL, inputId = "scale_Button"     , width = "15vh", class = "all_action_button", label = "Scale"),
                actionButton(
                  icon = NULL, inputId = "done_Button"      , width = "15vh", class = "all_action_button", label = "Done"),
                actionButton(
-                 icon = NULL, inputId = "settings_id"      , width = "15vh", class = "all_action_button", label = "Settings")
+                 icon = NULL, inputId = "settings_id"      , width = "15vh", class = "all_action_button", label = "Settings"),
+               verbatimTextOutput(outputId="info", placeholder=TRUE),
+               verbatimTextOutput("coords")
              ),
-             top="8vh", left = "0vh", width="20vh"
+             top="0vh", left = "0vh", width="20vh"
            )
-    ),
-    column(width = 12,
-           # top panel
-           absolutePanel(
-             wellPanel(
-               verbatimTextOutput(outputId="info", placeholder=TRUE)
-             ), top = "0vh", height=101, left=1, width=1023)#calc(100vh - 101px)
     )
   )
 )
