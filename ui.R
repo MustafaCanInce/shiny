@@ -32,7 +32,6 @@ ui <- fluidPage(
              wellPanel(
                fileInput(inputId = "image_file", label = NULL, multiple = TRUE, accept = c(".JPG", ".JPEG", ".PNG", ".TIF")),
                verbatimTextOutput("file_names"),
-               sliderInput(inputId = "plot_size", "Plot Size", min = 0, max = 100, value = 50, step = 5),
                actionButton(
                  icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
                actionButton(

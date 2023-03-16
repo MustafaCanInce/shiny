@@ -16,7 +16,7 @@ server <- function(input, output, session) {
       return("")
     } else {
       file_names <- file_list$name
-      file_names <- gsub("\\\\", "/", file_names)  # Windows pathlerindeki ters slaşları düzeltir
+      file_names <- gsub("\\\\", "/", file_names)  # Fixes backslash on paths
       paste(file_names, collapse = "<br>")
     }
   })
@@ -407,7 +407,7 @@ server <- function(input, output, session) {
   
   colnames(point) <- c("id","x","y")
   
-  # Checks if there are any points stored in xy_new data, and if so, it removes the last point.
+  # Checks if there are any landmarks(points) stored in xy_new data, and if so, it removes the last landmark(point).
   observeEvent(input$undo_Button, {
     if (length(xy_new$x) > 0) {
       xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
@@ -419,16 +419,16 @@ server <- function(input, output, session) {
   observeEvent(input$missing_Button, {
     xy_new$x <- c(xy_new$x, NA)
     xy_new$y <- c(xy_new$y, NA)
-    showNotification("Success, Null points have been added.")
+    showNotification("Success, Null Landmarks have been added.")
   })
   
   
   
   # Captures the selected range of x-axis coordinates from a plot brush and calculates the scale. A variable "known_distance" is set to 1 cm and "known_pixels" is set to 37.7957517575025 pixels. 
   # A scale factor is calculated by dividing known_distance by known_pixels and multiplying by "screen_resolution". 
-  # It creates an observer that listens to the "scale_Button" input. When the input is detected it checks if two points are selected on the x-axis of the plot. 
-  # If two points are selected, it calculates the distance in pixels between them, multiplies it by the scale factor and shows a notification with the calculated distance in cm. It also removes the two last points from xy_new$x and xy_new$y, 
-  # if not it shows a message that at least two points need to be selected before the button is pressed.
+  # It creates an observer that listens to the "scale_Button" input. When the input is detected it checks if two landmarks(points) are selected on the x-axis of the plot. 
+  # If two landmarks(points) are selected, it calculates the distance in pixels between them, multiplies it by the scale factor and shows a notification with the calculated distance in cm. It also removes the two last landmarks(points) from xy_new$x and xy_new$y, 
+  # if not it shows a message that at least two landmarks(points) need to be selected before the button is pressed.
   
   # Captures the selected range of x-axis coordinates from the plot brush and calculates the scale.
   
@@ -549,14 +549,10 @@ server <- function(input, output, session) {
         return()
       }
     }
-    #height <- dim(img)[1]
-    #width <- dim(img)[2]
-    #screen_resolution <- (width/height)
     
+    plot_size <- 50
     
-    plot_size <- input$plot_size
-    
-    height <- plot_size * 25
+    height <- 1250
     width <- dim(img)[2] * (plot_size / dim(img)[1]) * 25
     
     if (is.na(height) || height < 0 || is.na(width) || width < 0) {
@@ -616,8 +612,8 @@ server <- function(input, output, session) {
 
   # First creates a new tibble named coord with x and y coordinates stored in the xy_new$x and xy_new$y vectors. Then, it checks if there are any images available, if not, it returns nothing. 
   # If there are images, it reads the image located at the current index in images_path$data and assigns it to the variable img. Then it creates variables r and c to store the height and width of the image respectively. 
-  # It creates a dataframe named points_df and assigns the values of x and y from xy_new. It also creates a variable coordinates and assigns the values of x and y from xy_new. It concatenates the new coordinates to the point variable.
-  # Finally, it plots the coordinates on the plot, sets the x and y axis limits to the dimensions of the image, adds the image as a background and plots the points with different color options.
+  # It creates a dataframe named points_df and assigns the values of x and y from xy_new. It also creates a variable coordinates and assigns the values of x and y from xy_new. It concatenates the new coordinates to the landmark(point) variable.
+  # Finally, it plots the coordinates on the plot, sets the x and y axis limits to the dimensions of the image, adds the image as a background and plots the landmarks(points) with different color options.
   output$distplot <- renderPlot({
     coord <- tibble(x = xy_new$x, y = xy_new$y)
     if (length(images_path$data) == 0){
@@ -645,18 +641,8 @@ server <- function(input, output, session) {
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
+
     plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(0, dim(img)[1]), xlab="X", ylab="Y", xaxt = "n", yaxt = "n")
-    #axis(3, at = seq(0, dim(img)[2], by = 50))
-    #axis(2, at = seq(dim(img)[1], 0, by = -50), las = 2)
-    
-    #at_values <- seq(0, dim(img)[2], by = 50)
-    #at_values <- c(0, at_values + 10 - at_values %% 10,0)
-    #axis(3, at = at_values)
-    #
-    #at_values <- seq(dim(img)[1], 0, by = -50)
-    #at_values <- c(at_values + 10 - at_values %% 10, 0)
-    #axis(2, at = at_values, las = 2)
-    
     axis(3, at = seq(0, dim(img)[2], by=50))
     axis(2, at = seq(0, dim(img)[1], by=50), las=2)
     
@@ -681,7 +667,7 @@ server <- function(input, output, session) {
   # If it's NULL, it returns the string "NULL\n". If the argument is not NULL the function takes the x and y values of the coordinates and rounds them to two decimal places using round() function.
   # Second function xy_range_str() is similar to the first one, it takes a range object that holds xmin, xmax, ymin, ymax values. It checks if the passed argument is NULL or not. If it's NULL, it returns the string "NULL\n". 
   # Then it calculates xrange, yrange and diagonal distance using euclidean distance formula.
-  # After that, the function paste0() is used to concatenate the last click point coordinates by getting the last elements of xy_new$x and xy_new$y which are x and y respectively and rounding them to two decimal places.
+  # After that, the function paste0() is used to concatenate the last click landmark(point) coordinates by getting the last elements of xy_new$x and xy_new$y which are x and y respectively and rounding them to two decimal places.
   output$info <- renderText({
     xy_str <- function(e) {
       if(is.null(e)) return("NULL\n")
