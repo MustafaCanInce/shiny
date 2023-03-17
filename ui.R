@@ -3,18 +3,28 @@ ui <- fluidPage(
     timeout = 1000,
     color = "#112446",
     centered = FALSE,
-    height = "8px"
+    height = "0.5vh"
   ),
   # Style applies to elements with the class "all_action_button" and it sets the border-radius to 20px, padding to 20px, and margin to 10px
   useShinyjs(),
   tags$head(
+    tags$script("
+  $(document).ready(function() {
+    setInterval(function() {
+      var width = window.innerWidth;
+      var height = window.innerHeight;
+      Shiny.setInputValue('screenSize', [width, height]);
+      console.log('Ekran çözünürlüğü: ' + width + 'x' + height);
+    }, 100);
+  });
+"),
     tags$style(
     HTML("
       .all_action_button {
-        border-radius: 20px;
-        padding: 10px;
-        margin: 10px;
-        height: 6vh;
+        border-radius: 2vh;
+        padding: 1vh;
+        margin: 1vh;
+        height: 5.5vh;
       }
                 "))
   ),
@@ -39,9 +49,9 @@ ui <- fluidPage(
                actionButton(
                  icon = NULL, inputId = "prev_Button"      , width = "15vh", class = "all_action_button", label = "Previous Image"),
                actionButton(
-                 icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = "Add Missing Landmark"),
+                 icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = HTML("Add Missing<br/>Landmark")),
                actionButton(
-                 icon = NULL, inputId = "undo_Button"      , width = "15vh", class = "all_action_button", label = "Undo Last Landmark"),
+                 icon = NULL, inputId = "undo_Button"      , width = "15vh", class = "all_action_button", label = HTML("Undo Last<br/>Landmark")),
                actionButton(
                  icon = NULL, inputId = "clear_button"     , width = "15vh", class = "all_action_button", label = "Clear Landmarks"),
                actionButton(

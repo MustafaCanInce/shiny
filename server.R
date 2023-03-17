@@ -10,14 +10,17 @@ server <- function(input, output, session) {
   l1 <- 1
   l2 <- 2
   
+  
   output$file_names <- renderPrint({
     file_list <- input$image_file
     if (is.null(file_list)) {
       return("")
     } else {
       file_names <- file_list$name
-      file_names <- gsub("\\\\", "/", file_names)  # Fixes backslash on paths
+      file_names <<- gsub("\\\\", "/", file_names)  # Fixes backslash on paths
+      
       paste(file_names, collapse = "<br>")
+      
     }
   })
   
@@ -358,12 +361,11 @@ server <- function(input, output, session) {
   
   observeEvent(input$CsvWithscale_Button, {
 
-    
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
     df_new <- df * known_distance/ratio
-    file = paste0("scale_",image_names$data[index$current],"_",user_name,".csv")
+    file = paste0("scale_",file_names,"_",user_name,".csv")
     if(!dir.exists("output")){
       dir.create("output")
     }
@@ -388,7 +390,7 @@ server <- function(input, output, session) {
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
-    file = paste0(image_names$data[index$current],"_",user_name,".csv")
+    file = paste0(file_names,"_",user_name,".csv")
     if(!dir.exists("output")){
       dir.create("output")
     }
@@ -550,15 +552,13 @@ server <- function(input, output, session) {
       }
     }
     
-    plot_size <- 50
     
-    height <- 1250
-    width <- dim(img)[2] * (plot_size / dim(img)[1]) * 25
-    
-    if (is.na(height) || height < 0 || is.na(width) || width < 0) {
+    height <- input$screenSize[[2]]-86
+    width <- dim(img)[2] * ((input$screenSize[[1]]/2) / dim(img)[1]) 
+   
+    if (is.na(height) || height <= 0 || is.na(width) || width <= 0) {
       return(NULL) 
     }
-    
     tags$div(
       style = "position: absolute; left: 20%;", 
       plotOutput(
