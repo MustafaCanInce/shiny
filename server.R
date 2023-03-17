@@ -9,8 +9,7 @@ server <- function(input, output, session) {
   file_path <- file.path(getwd(), "output")
   l1 <- 1
   l2 <- 2
-  
-  
+
   output$file_names <- renderPrint({
     file_list <- input$image_file
     if (is.null(file_list)) {
@@ -18,12 +17,11 @@ server <- function(input, output, session) {
     } else {
       file_names <- file_list$name
       file_names <<- gsub("\\\\", "/", file_names)  # Fixes backslash on paths
-      
+      file_names_list <<- strsplit(file_names, " ")
       paste(file_names, collapse = "<br>")
       
     }
   })
-  
   
   observeEvent(input$imputation_Button, {
     showModal(modalDialog(
@@ -365,7 +363,9 @@ server <- function(input, output, session) {
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
     df_new <- df * known_distance/ratio
-    file = paste0("scale_",file_names,"_",user_name,".csv")
+    
+    
+    file = paste0("scale_",file_names_list[index$current],"_",user_name,".csv")
     if(!dir.exists("output")){
       dir.create("output")
     }
@@ -390,7 +390,7 @@ server <- function(input, output, session) {
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
-    file = paste0(file_names,"_",user_name,".csv")
+    file = paste0(file_names_list[index$current],"_",user_name,".csv")
     if(!dir.exists("output")){
       dir.create("output")
     }
@@ -488,6 +488,7 @@ server <- function(input, output, session) {
     images_path$data <- input$image_file$datapath
     image_names$data <- lapply(input$image_file$datapath, basename)
     ratio <<- 0
+    index$current <<- 1
   })
   
   index <- reactiveValues(current = 1)
@@ -553,19 +554,27 @@ server <- function(input, output, session) {
     }
     
     
-    height <- input$screenSize[[2]]-86
-    width <- dim(img)[2] * ((input$screenSize[[1]]/2) / dim(img)[1]) 
-   
-    if (is.na(height) || height <= 0 || is.na(width) || width <= 0) {
+    screen_size <- input$screenSize
+    img_ratio <- dim(img)[2] / dim(img)[1]
+    plot_height <- screen_size[2] 
+    plot_width <- screen_size[1] 
+    if (plot_width / plot_height > img_ratio) {
+      plot_width <- plot_height * img_ratio
+    } else {
+      plot_height <- plot_width / img_ratio
+    }
+    
+    if (is.na(plot_height) || plot_height <= 0 || is.na(plot_width) || plot_width <= 0) {
       return(NULL) 
     }
+    
     tags$div(
       style = "position: absolute; left: 20%;", 
       plotOutput(
         "distplot",
         click = "plot_click",
-        height= height,
-        width = width,
+        height= plot_height,
+        width = plot_width,
         hover = "plot_hover"
       )
     )
@@ -635,9 +644,6 @@ server <- function(input, output, session) {
         return()
       }
     }
-    height <- dim(img)[1]
-    width <- dim(img)[2]
-    screen_resolution <<- (width/height)
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)

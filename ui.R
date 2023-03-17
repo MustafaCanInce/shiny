@@ -32,7 +32,7 @@ ui <- fluidPage(
   fluidRow(
     column(width = 12,
            # main panel
-           uiOutput(outputId = "plot.ui", style = "height: auto; width: auto; position: fixed; top: 5vh; left: 21vh;")
+           uiOutput(outputId = "plot.ui", style = "height: auto; width: auto; position: fixed; top: 0vh; left: 21vh;")
            
            
     ),
