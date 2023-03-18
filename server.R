@@ -11,23 +11,34 @@ server <- function(input, output, session) {
   l2 <- 2
 
   output$file_names <- renderPrint({
+    # Get the selected image file(s)
     file_list <- input$image_file
+    # If no file has been selected, return an empty string
     if (is.null(file_list)) {
       return("")
-    } else {
+    } 
+    else {
+      # Get the names of the selected files
       file_names <- file_list$name
-      file_names <<- gsub("\\\\", "/", file_names)  # Fixes backslash on paths
+      # Replace backslashes in the file paths with forward slashes
+      file_names <- gsub("\\\\", "/", file_names)
+      # Split the file names into a list of individual names
       file_names_list <<- strsplit(file_names, " ")
+      # Combine the file names into a single string with a line break between each name
       paste(file_names, collapse = "<br>")
       
     }
   })
   
   observeEvent(input$imputation_Button, {
+    # Show a modal dialog box when the 'imputation_Button' is clicked
     showModal(modalDialog(
       title = "Imputation Settings",
+      # Add a numeric input field for 'l1', with a default value of 'l1'
       numericInput("l1_input", "l1:", value = l1),
+      # Add a numeric input field for 'l2', with a default value of 'l2'
       numericInput("l2_input", "l2:", value = l2),
+      # Add an action button for 'Guess NA Landmarks','Submit' and 'Close'
       actionButton("guess_Button", "Guess NA Landmarks"),
       actionButton("submit_imp", "Submit"),
       actionButton("close_modal", "Close"),
@@ -35,7 +46,9 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$submit_imp, {
-    if(input$l1_input == ""  || input$l2_input == "" ){
+    # Check if the 'l1_input' or 'l2_input' field is empty
+    if (input$l1_input == ""  || input$l2_input == "" ) {
+      # If either field is empty, show an error message using 'shinyalert'
       shinyalert(title = "Error", 
                  text = "Please fill all the fields", 
                  type = "error", 
@@ -43,6 +56,7 @@ server <- function(input, output, session) {
         )
     }
     else {
+      # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
       l1 <<- input$l1_input
       l2 <<- input$l2_input
       shinyalert(title = "Success", 
@@ -68,7 +82,7 @@ server <- function(input, output, session) {
       files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
       
       # get any of the data to determine the number of the landmark (I mean the number of row)
-      suppressWarnings(t_data <-  as.data.frame(read.csv(paste(file_path,files[1],sep="/"),header = TRUE,sep = ",",comment.char = "#")))
+      suppressWarnings(t_data <-  as.data.frame(read.csv(paste(file_path,files[1],sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
       
       nf <-  length(files) #number of image
       nr <-  nrow(t_data) #number of landmark(row)
@@ -81,41 +95,41 @@ server <- function(input, output, session) {
       #missing landmark and adding it to the beginning of the list.
       
       vector_data <- c()
-      nii<-  0 #null_image_index
-      nli<- 0 # null_landmark_index 
+      nii <-  0 #null_image_index
+      nli <- 0 # null_landmark_index 
       #This loop determine the index of the data that contains missing landmark
       i <- 1
-      for(elem in files){
-        suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header =TRUE,sep = ",",comment.char = "#")))
-        for(is_null in is.na(temp_data)){
-          if (is_null == TRUE){
+      for (elem in files) {
+        suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
+        for (is_null in is.na(temp_data)) {
+          if (is_null == TRUE) {
             nii <- i
             break
           }
         }
-        i <- i+1
+        i <- i + 1
       }
       #Save the null image into a variable
-      suppressWarnings(null_image_data <-  as.data.frame(read.csv(paste(file_path,files[nii],sep="/"),header = TRUE,sep=",",comment.char = "#")))
+      suppressWarnings(null_image_data <-  as.data.frame(read.csv(paste(file_path,files[nii],sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
       null_data_frame <-  is.na(null_image_data)
       
       #This loop determine the index of the landmark 
       i <- 1
-      for (boolean in null_data_frame){
-        if(boolean == TRUE){
+      for (boolean in null_data_frame) {
+        if (boolean == TRUE) {
           nli <-  i
           break
         } 
-        i <- i+1
+        i <- i + 1
       }
       rm(null_data_frame)
       i <-  1
-      for(elem in files){
-        if (i != nii){
-          suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep="/"),header = TRUE,sep = ",",comment.char = "#")))
-          vector_data <-  c(vector_data, unlist(temp_data,use.names=FALSE))
+      for (elem in files) {
+        if (i != nii) {
+          suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,elem,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
+          vector_data <-  c(vector_data, unlist(temp_data,use.names = FALSE))
         }
-        i <- i+1
+        i <- i + 1
       }
       
       #Adding null data to the beginning of the list 
@@ -129,145 +143,145 @@ server <- function(input, output, session) {
       
       #Determine the landmark that will use as a reference
       #row,column,sublist
-      xl1<-st_data[l1,1,1] #x coordinate of the l1
-      xl2<-st_data[l2,1,1]  #x coordinate of the l2
+      xl1 <- st_data[l1,1,1] #x coordinate of the l1
+      xl2 <- st_data[l2,1,1]  #x coordinate of the l2
       
-      yl1<-st_data[l1,2,1] #y coordinate of the l1
-      yl2<-st_data[l2,2,1] #y coordinate of the l2
+      yl1 <- st_data[l1,2,1] #y coordinate of the l1
+      yl2 <- st_data[l2,2,1] #y coordinate of the l2
       
       #Create bookstein coordinate from the missing data
-      my.dat.book<-bookstein2d(st_data)
-      my.dat.book.cor<-my.dat.book$bshpv
+      my.dat.book <- bookstein2d(st_data)
+      my.dat.book.cor <- my.dat.book$bshpv
       #veri<-my.dat.book.cor
       
       #Reformat the dataset in order to applying the F statistic.
-      i=1  
-      new_data<-data.frame(matrix(nrow = nf, ncol = 2))
-      colnames(new_data)<-c("x", "y")
+      i = 1  
+      new_data <- data.frame(matrix(nrow = nf, ncol = 2))
+      colnames(new_data) <- c("x", "y")
       for (i in 1:nf) {
-        new_data[i,1]<-my.dat.book.cor[nli,1,i]
-        new_data[i,2]<-my.dat.book.cor[nli,2,i]
+        new_data[i,1] <- my.dat.book.cor[nli,1,i]
+        new_data[i,2] <- my.dat.book.cor[nli,2,i]
       }
       
       #Applying the F approach
       
-      i=2
-      distance_null_to_l1<-matrix(nrow = nf, ncol = 1)
+      i = 2
+      distance_null_to_l1 <- matrix(nrow = nf, ncol = 1)
       for (i in 2:nf) {       
-        temp=my.dat.book.cor[,,i]
-        xc1<-temp[l1,1]  #x-coordinate of the l1 
-        yc1<-temp[l1,2]  #y-coordinate of the l1
-        xc3<-temp[nli,1] #x-coordinate of the null_landmark
-        yc3<-temp[nli,2] #y-coordinate of the null_landmark
-        distance_null_to_l1[i,1]=sqrt((xc3-xc1)^2+(yc3-yc1)^2)#Euclidean distance
+        temp = my.dat.book.cor[,,i]
+        xc1 <- temp[l1,1]  #x-coordinate of the l1 
+        yc1 <- temp[l1,2]  #y-coordinate of the l1
+        xc3 <- temp[nli,1] #x-coordinate of the null_landmark
+        yc3 <- temp[nli,2] #y-coordinate of the null_landmark
+        distance_null_to_l1[i,1] = sqrt((xc3 - xc1)^2 + (yc3 - yc1)^2)#Euclidean distance
       }
       
-      distance_null_to_l1<-distance_null_to_l1[-1,] #remove the NA 
-      mean_distance_null_to_l1=mean(distance_null_to_l1) # calculate the mean
+      distance_null_to_l1 <- distance_null_to_l1[-1,] #remove the NA 
+      mean_distance_null_to_l1 = mean(distance_null_to_l1) # calculate the mean
       
-      i=2
-      distance_null_to_l2<-data.frame(matrix(nrow = nf, ncol = 1))
+      i = 2
+      distance_null_to_l2 <- data.frame(matrix(nrow = nf, ncol = 1))
       for (i in 2:nf)  {       
-        temp=my.dat.book.cor[,,i]
-        xc2<-temp[l2,1]   #x-coordinate of the l2 
-        yc2<-temp[l2,2]   #y-coordinate of the l2
-        xc3<-temp[nli,1]  #x-coordinate of the null_landmark
-        yc3<-temp[nli,2]  #y-coordinate of the null_landmark
-        distance_null_to_l2[i,1]=sqrt((xc3-xc2)^2+(yc3-yc2)^2) #Euclidean distance
+        temp = my.dat.book.cor[,,i]
+        xc2 <- temp[l2,1]   #x-coordinate of the l2 
+        yc2 <- temp[l2,2]   #y-coordinate of the l2
+        xc3 <- temp[nli,1]  #x-coordinate of the null_landmark
+        yc3 <- temp[nli,2]  #y-coordinate of the null_landmark
+        distance_null_to_l2[i,1] = sqrt((xc3 - xc2)^2 + (yc3 - yc2)^2) #Euclidean distance
       }
-      distance_null_to_l2<-distance_null_to_l2[-1,] #remove the NA 
-      mean_distance_null_to_l2=mean(distance_null_to_l2) # calculate the mean
+      distance_null_to_l2 <- distance_null_to_l2[-1,] #remove the NA 
+      mean_distance_null_to_l2 = mean(distance_null_to_l2) # calculate the mean
       
       
-      c=(-1/2)*(mean_distance_null_to_l1^2-mean_distance_null_to_l2^2)  
-      d=sqrt(mean_distance_null_to_l1^2-(c+0.5)^2)    
-      y4<-new_data
-      y4<-as.matrix(y4)
-      y4[1,1]<-c
-      y4[1,2]<-d
+      c = (-1/2)*(mean_distance_null_to_l1^2 - mean_distance_null_to_l2^2)  
+      d = sqrt(mean_distance_null_to_l1^2 - (c + 0.5)^2)    
+      y4 <- new_data
+      y4 <- as.matrix(y4)
+      y4[1,1] <- c
+      y4[1,2] <- d
       
       #Calculate confidence interval
-      d2<-distance_null_to_l1
-      d2lb<-mean_distance_null_to_l1-1.96*(sd(d2)/sqrt(length(d2)))  #### lower bound
-      d2ub<- mean_distance_null_to_l1 +1.96*(sd(d2)/sqrt(length(d2))) #### upper bound
+      d2 <- distance_null_to_l1
+      d2lb <- mean_distance_null_to_l1 - 1.96*(sd(d2)/sqrt(length(d2)))  #### lower bound
+      d2ub <- mean_distance_null_to_l1 + 1.96*(sd(d2)/sqrt(length(d2))) #### upper bound
       
-      d3<-distance_null_to_l2
-      d3lb<- mean_distance_null_to_l2 - 1.96*(sd(d3)/sqrt(length(d3)))  #### lower bound
-      d3ub<- mean_distance_null_to_l2 + 1.96*(sd(d3)/sqrt(length(d3)))  #### upper bound
+      d3 <- distance_null_to_l2
+      d3lb <- mean_distance_null_to_l2 - 1.96*(sd(d3)/sqrt(length(d3)))  #### lower bound
+      d3ub <- mean_distance_null_to_l2 + 1.96*(sd(d3)/sqrt(length(d3)))  #### upper bound
       
       closeAllConnections()
       
-      counter<-0
-      fstatt<-matrix(byrow=TRUE)
-      ls<-matrix(byrow=TRUE)
-      counterS<-matrix(byrow=TRUE)
-      cs<-matrix(byrow=TRUE)
-      ds<-matrix(byrow=TRUE)
+      counter <- 0
+      fstatt <- matrix(byrow = TRUE)
+      ls <- matrix(byrow = TRUE)
+      counterS <- matrix(byrow = TRUE)
+      cs <- matrix(byrow = TRUE)
+      ds <- matrix(byrow = TRUE)
       closeAllConnections()
       
       #Calculate the f-statistic
-      for ( c in seq(d2lb, d2ub, 0.2) )  {
-        for ( d in seq(d3lb, d3ub, 0.2) ) {
-          counter<-counter+1
-          y4[1,1]<-c
-          y4[1,2]<-d
-          gakt=nf*(mean(y4[,1])-mean(y4))^2+nf*(mean(y4[,2])-mean(y4))^2
-          cat(gakt, sep="\n", file="gakt.txt", append=TRUE)
+      for (c in seq(d2lb, d2ub, 0.2) )  {
+        for (d in seq(d3lb, d3ub, 0.2) ) {
+          counter <- counter + 1
+          y4[1,1] <- c
+          y4[1,2] <- d
+          gakt = nf*(mean(y4[,1]) - mean(y4))^2 + nf*(mean(y4[,2]) - mean(y4))^2
+          cat(gakt, sep = "\n", file = "gakt.txt", append = TRUE)
           sink("gkt.txt")
-          k=2
-          for( i in 1:k){
+          k = 2
+          for (i in 1:k) {
             for (j in 1:nf) {
-              t=((y4[j,i]-mean(y4))^2)
-              cat(t, sep="\n", file="gkt.txt", append=TRUE)
-              j=j+1
+              t = ((y4[j,i] - mean(y4))^2)
+              cat(t, sep = "\n", file = "gkt.txt", append = TRUE)
+              j = j + 1
             }
-            i=i+1
+            i = i + 1
           }
           gkt <- read.table("gkt.txt")
-          suppressWarnings(gkt<-as.numeric(unlist(gkt)))
-          gktson=sum(gkt)
-          gikt=gktson-gakt
-          fstat=((gakt/(k-1))/(gikt/(2*nf-k))) 
-          fstatt[counter]<-fstat
+          suppressWarnings(gkt <- as.numeric(unlist(gkt)))
+          gktson = sum(gkt)
+          gikt = gktson - gakt
+          fstat = ((gakt/(k - 1))/(gikt/(2*nf - k))) 
+          fstatt[counter] <- fstat
           closeAllConnections()
           ##ls[counter]<-l
-          counterS[counter]<-counter
-          cs[counter]<-c
-          ds[counter]<-d
+          counterS[counter] <- counter
+          cs[counter] <- c
+          ds[counter] <- d
         }
         closeAllConnections()
       }
       
       # Arrange the result for Min(F) criterion
-      ts<-rbind(counterS, cs, ds, fstatt)
-      ts<-t(ts)
-      ts<-as.data.frame(ts)
-      colnames(ts)<-c("COUNTER", "X", "Y", "F")
-      minn<-ts %>% 
+      ts <- rbind(counterS, cs, ds, fstatt)
+      ts <- t(ts)
+      ts <- as.data.frame(ts)
+      colnames(ts) <- c("COUNTER", "X", "Y", "F")
+      minn <- ts %>% 
         slice(which.min(F))
       
       
       #Reverting from bookstein coordinates to original coordinates for Min(F)
-      D=(xl2-xl1)^2+(yl2-yl1)^2
-      A=xl2-xl1
-      B=yl2-yl1
-      ub<-  minn$X
-      vb<-  minn$Y
-      C= (ub+0.5)
+      D = (xl2 - xl1)^2 + (yl2 - yl1)^2
+      A = xl2 - xl1
+      B = yl2 - yl1
+      ub <- minn$X
+      vb <- minn$Y
+      C = (ub + 0.5)
       
-      xj2={A*D*C+xl1*(A^2+B^2)-B*vb*D}/(A^2+B^2) #Predicted x-coordinate
+      xj2 = {A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2) #Predicted x-coordinate
       
-      yj2={D*C-A*{{A*D*C+xl1*(A^2+B^2)-B*vb*D}/(A^2+B^2)}+A*xl1+B*yl1}/B #Predicted y-coordinate
+      yj2 = {D*C - A*{{A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B #Predicted y-coordinate
       
       
-      xmin<-as.numeric(unlist(xj2))
-      ymin<-as.numeric(unlist(yj2))
+      xmin <- as.numeric(unlist(xj2))
+      ymin <- as.numeric(unlist(yj2))
       
       return(c(xmin,ymin))
     }
     remove_modal_progress()
-    result <-impute.missing(file_path,l1,l2)
-    if(!is.null(result)){
+    result <- impute.missing(file_path,l1,l2)
+    if (!is.null(result)) {
       files <- list.files(file_path, pattern = '.csv')
       data <- read.csv(file.path(file_path, files[1]),comment.char = "#")
       data[is.na(data$x), "x"] <- result[[1]]
@@ -300,7 +314,7 @@ server <- function(input, output, session) {
   # When input is detected, it checks if the "name_input" or "resolution_input" fields are empty. If either field is empty, it displays an error message using the "shinyalert" function.
   # If both fields are filled, it creates a "user_info" list with the input values, saves the list to the "user_info.rds" file and shows a success message using the "shinyalert" function.
   observeEvent(input$submit_id, {
-    if(input$name_input == ""  || input$knowndistance_input == "" || input$knowndistance_units_input == ""){
+    if (input$name_input == ""  || input$knowndistance_input == "" || input$knowndistance_units_input == "") {
       shinyalert(title = "Error", 
                  text = "Please fill all the fields", 
                  type = "error", 
@@ -366,12 +380,12 @@ server <- function(input, output, session) {
     
     
     file = paste0("scale_",file_names_list[index$current],"_",user_name,".csv")
-    if(!dir.exists("output")){
+    if (!dir.exists("output")) {
       dir.create("output")
     }
     results_df_string <- ""
     results_df_string <- capture.output(print(results_df))
-    results_df_string <- paste( "#", results_df_string,sep="")
+    results_df_string <- paste( "#", results_df_string,sep = "")
     results_df_string <- paste(results_df_string, collapse = "\n")
     
     file_con <- file(paste0("output/", file), open = "w")
@@ -391,12 +405,12 @@ server <- function(input, output, session) {
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
     file = paste0(file_names_list[index$current],"_",user_name,".csv")
-    if(!dir.exists("output")){
+    if (!dir.exists("output")) {
       dir.create("output")
     }
     results_df_string <- ""
     results_df_string <- capture.output(print(results_df))
-    results_df_string <- paste( "#", results_df_string,sep="")
+    results_df_string <- paste( "#", results_df_string,sep = "")
     results_df_string <- paste(results_df_string, collapse = "\n")
     
     file_con <- file(paste0("output/", file), open = "w")
@@ -445,29 +459,29 @@ server <- function(input, output, session) {
       ratio <<- result / known_distance
       showNotification(paste0("scaling was successful calibrated. ratio is:",ratio))
       
-      for(i in 1:2){
+      for (i in 1:2) {
         xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
         xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
       }
       
     } 
-    else if(ratio != 0){
-      delta_x <- xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1]
-      delta_y <- xy_new$y[length(xy_new$y)] - xy_new$y[length(xy_new$y)-1]
+    else if (ratio != 0) {
+      delta_x <- xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x) - 1]
+      delta_y <- xy_new$y[length(xy_new$y)] - xy_new$y[length(xy_new$y) - 1]
       result <- sqrt(delta_x^2 + delta_y^2)
-      if(unitsofmetric == "cm"){
+      if (unitsofmetric == "cm") {
         distance_between_two_landmarks <- result / ratio
-      } else if(unitsofmetric == "mm"){
+      } else if (unitsofmetric == "mm") {
         result = result * 100
         distance_between_two_landmarks <- result / ratio
-      } else if(unitsofmetric == "m"){
+      } else if (unitsofmetric == "m") {
         result = result / 100
         distance_between_two_landmarks <- result / ratio
       }
       showNotification(paste0("scaling was successful measured distance: ",distance_between_two_landmarks," ",unitsofmetric))
       results_df <<- results_df %>% add_row(distance_between_two_landmarks = distance_between_two_landmarks, unitsofmetric = unitsofmetric)
       
-      for(i in 1:2){
+      for (i in 1:2) {
         xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
         xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
       }
@@ -499,7 +513,7 @@ server <- function(input, output, session) {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
     results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
-    if(index$current < length(images_path$data)){
+    if (index$current < length(images_path$data)) {
       index$current <<- index$current + 1
       ratio <<- 0
     }
@@ -514,7 +528,7 @@ server <- function(input, output, session) {
     xy_new$x <- numeric(0)
     xy_new$y <- numeric(0)
     results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
-    if(index$current > 1){
+    if (index$current > 1) {
       index$current <<- index$current - 1
       ratio <<- 0
     }
@@ -524,27 +538,27 @@ server <- function(input, output, session) {
   })
   
   # Function to set the shiny.maxRequestSize option to 100 * 1024 ^ 2. This sets the maximum allowed file size to 100 megabytes.
-  options(shiny.maxRequestSize=100*1024^2) 
+  options(shiny.maxRequestSize = 100*1024^2) 
   
-  xy_new <- reactiveValues(x= numeric(0), y = numeric(0), line=numeric(0)) # add new landmarks
+  xy_new <- reactiveValues(x = numeric(0), y = numeric(0), line = numeric(0)) # add new landmarks
   
   # Creates a "distplot" plot output, plot is responsive to clicks with an event handler named "plot_click"
   # and it allows the user to select a range of x-coordinates using the brush tool, with an event handler named "plot_brush".
   height <- 0
   width <- 0
   output$plot.ui <- renderUI({
-    if (length(images_path$data) == 0){
+    if (length(images_path$data) == 0) {
       return() 
     }
     else {
       img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
-      if(img_extension == "jpg" || img_extension == "jpeg"){
+      if (img_extension == "jpg" || img_extension == "jpeg") {
         img <- readJPEG(images_path$data[[index$current]])
       } 
-      else if(img_extension == "png"){
+      else if (img_extension == "png") {
         img <- readPNG(images_path$data[[index$current]])
       }
-      else if(img_extension == "tif" || img_extension == "tiff"){
+      else if (img_extension == "tif" || img_extension == "tiff") {
         img <- tiff::readTIFF(images_path$data[[index$current]])
       }
       else {
@@ -556,14 +570,15 @@ server <- function(input, output, session) {
     
     screen_size <- input$screenSize
     img_ratio <- dim(img)[2] / dim(img)[1]
-    plot_height <- screen_size[2] 
-    plot_width <- screen_size[1] 
-    if (plot_width / plot_height > img_ratio) {
-      plot_width <- plot_height * img_ratio
-    } else {
-      plot_height <- plot_width / img_ratio
+    plot_height <- screen_size[2]
+    plot_width <- screen_size[1]
+    if (plot_width > 0 && plot_height > 0 && img_ratio > 0) {
+      if (plot_width / plot_height > img_ratio) {
+        plot_width <- plot_height * img_ratio
+      } else {
+        plot_height <- plot_width / img_ratio
+      }
     }
-    
     if (is.na(plot_height) || plot_height <= 0 || is.na(plot_width) || plot_width <= 0) {
       return(NULL) 
     }
@@ -573,7 +588,7 @@ server <- function(input, output, session) {
       plotOutput(
         "distplot",
         click = "plot_click",
-        height= plot_height,
+        height = plot_height,
         width = plot_width,
         hover = "plot_hover"
       )
@@ -600,10 +615,10 @@ server <- function(input, output, session) {
   # Then, it adds the x and y coordinates of the click to the xy_new$x and xy_new$y vectors, respectively.
   # If the event is null, it will return nothing.
   observe({
-    if (is.null(input$plot_click)){
+    if (is.null(input$plot_click)) {
       return()
     }
-    if(!is.null(input$plot_click)){
+    if (!is.null(input$plot_click)) {
       isolate({
         xy_new$x <- c(xy_new$x, input$plot_click$x)
         xy_new$y <- c(xy_new$y, input$plot_click$y)
@@ -625,18 +640,18 @@ server <- function(input, output, session) {
   # Finally, it plots the coordinates on the plot, sets the x and y axis limits to the dimensions of the image, adds the image as a background and plots the landmarks(points) with different color options.
   output$distplot <- renderPlot({
     coord <- tibble(x = xy_new$x, y = xy_new$y)
-    if (length(images_path$data) == 0){
+    if (length(images_path$data) == 0) {
       return() 
     }
     else {
       img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
-      if(img_extension == "jpg" || img_extension == "jpeg"){
+      if (img_extension == "jpg" || img_extension == "jpeg") {
         img <- readJPEG(images_path$data[[index$current]])
       } 
-      else if(img_extension == "png"){
+      else if (img_extension == "png") {
         img <- readPNG(images_path$data[[index$current]])
       }
-      else if(img_extension == "tif" || img_extension == "tiff"){
+      else if (img_extension == "tif" || img_extension == "tiff") {
         img <- tiff::readTIFF(images_path$data[[index$current]])
       }
       else {
@@ -648,14 +663,14 @@ server <- function(input, output, session) {
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
 
-    plot(coord$x, coord$y, xlim=c(0, dim(img)[2]), ylim=c(0, dim(img)[1]), xlab="X", ylab="Y", xaxt = "n", yaxt = "n")
-    axis(3, at = seq(0, dim(img)[2], by=50))
-    axis(2, at = seq(0, dim(img)[1], by=50), las=2)
+    plot(coord$x, coord$y, xlim = c(0, dim(img)[2]), ylim = c(0, dim(img)[1]), xlab = "X", ylab = "Y", xaxt = "n", yaxt = "n")
+    axis(3, at = seq(0, dim(img)[2], by = 50))
+    axis(2, at = seq(0, dim(img)[1], by = 50), las = 2)
     
     rasterImage(img, 0, 0, dim(img)[2], dim(img)[1])
-    points(coord$x, coord$y, col=c("red"), cex=2, pch=20)
+    points(coord$x, coord$y, col = c("red"), cex = 2, pch = 20)
     
-    if(nrow(coord)>0){
+    if (nrow(coord) > 0) {
       for (i in 1:nrow(coord)) {
         text(coord$x[i], coord$y[i], labels = i, pos = 4, col = "red", cex = 2)
       }
@@ -676,16 +691,20 @@ server <- function(input, output, session) {
   # After that, the function paste0() is used to concatenate the last click landmark(point) coordinates by getting the last elements of xy_new$x and xy_new$y which are x and y respectively and rounding them to two decimal places.
   output$info <- renderText({
     xy_str <- function(e) {
-      if(is.null(e)) return("NULL\n")
+      if (is.null(e)) {
+        return("NULL\n")
+        }
       paste0("x=", round(e$x, 2), " y=", round(e$y, 2), "\n")
     }
     
     xy_range_str <- function(e) {
-      if(is.null(e)) return("NULL\n")
+      if (is.null(e)) {
+        return("NULL\n")
+        }
       paste0("xmin="   , round(e$xmin, 2),           " xmax=", round(e$xmax, 2),
              " ymin="  , round(e$ymin, 2),           " ymax=", round(e$ymax, 2),
-             " xrange=", round(e$xmax-e$xmin, 2),    " yrange=", round(e$ymax-e$ymin,2),
-             " diag="  , round(sqrt((e$xmax-e$xmin)^2+(e$ymax-e$ymin)^2)))
+             " xrange=", round(e$xmax - e$xmin, 2),    " yrange=", round(e$ymax - e$ymin, 2),
+             " diag="  , round(sqrt((e$xmax - e$xmin) ^ 2 + (e$ymax - e$ymin) ^ 2)))
     }
     
     paste0(

@@ -10,13 +10,18 @@ ui <- fluidPage(
   tags$head(
     tags$script("
   $(document).ready(function() {
-    setInterval(function() {
+  var debounceTimeout;
+  
+  $(window).on('resize', function() {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(function() {
       var width = window.innerWidth;
       var height = window.innerHeight;
       Shiny.setInputValue('screenSize', [width, height]);
       console.log('Ekran çözünürlüğü: ' + width + 'x' + height);
-    }, 100);
+    }, 500);
   });
+});
 "),
     tags$style(
     HTML("
@@ -60,10 +65,10 @@ ui <- fluidPage(
                  icon = NULL, inputId = "done_Button"      , width = "15vh", class = "all_action_button", label = "Done"),
                actionButton(
                  icon = NULL, inputId = "settings_id"      , width = "15vh", class = "all_action_button", label = "Settings"),
-               verbatimTextOutput(outputId="info", placeholder=TRUE),
+               verbatimTextOutput(outputId = "info", placeholder = TRUE),
                verbatimTextOutput("coords")
              ),
-             top="0vh", left = "0vh", width="20vh"
+             top = "0vh", left = "0vh", width = "20vh"
            )
     )
   )
