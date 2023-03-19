@@ -33,15 +33,41 @@ server <- function(input, output, session) {
   observeEvent(input$imputation_Button, {
     # Show a modal dialog box when the 'imputation_Button' is clicked
     showModal(modalDialog(
-      title = "Imputation Settings",
-      # Add a numeric input field for 'l1', with a default value of 'l1'
+      title = "Imputation of Missing Landmark",
+      
+      div(
+        # F method explanation
+        p("Please select the F method to impute missing landmarks based on surrounding features."),
+        # Button for the F method
+        actionButton("f_method", "Guess Na Landmarks with F Method."),
+        # xyz method explanation
+        p("Please select the xyz method to impute missing landmarks based on spatial coordinates."),
+        # Button for the xyz method
+        actionButton("xyz_method", "Guess Na Landmarks with xyz Method.")
+      )
+    ))
+  })
+
+  observeEvent(input$xyz_method, {
+    showModal(modalDialog(
+      title = "xyz Method Imputation Settings",
+      actionButton("close_modal", "Close")
+    ))
+  })
+  
+  observeEvent(input$f_method, {
+    showModal(modalDialog(
+      title = "F Method Imputation Settings",
+      # Add a numeric input field for 'l1', with a default value of 'l1', 'l2'
       numericInput("l1_input", "l1:", value = l1),
-      # Add a numeric input field for 'l2', with a default value of 'l2'
       numericInput("l2_input", "l2:", value = l2),
+      # Add an file input for csv uploads.
+      fileInput("csv_upload", "Upload CSV files", multiple = TRUE, accept = c(".csv")),
       # Add an action button for 'Guess NA Landmarks','Submit' and 'Close'
       actionButton("guess_Button", "Guess NA Landmarks"),
       actionButton("submit_imp", "Submit"),
-      actionButton("close_modal", "Close"),
+      
+      actionButton("close_modal", "Close")
     ))
   })
   
@@ -572,13 +598,17 @@ server <- function(input, output, session) {
     img_ratio <- dim(img)[2] / dim(img)[1]
     plot_height <- screen_size[2]
     plot_width <- screen_size[1]
-    if (plot_width > 0 && plot_height > 0 && img_ratio > 0) {
-      if (plot_width / plot_height > img_ratio) {
-        plot_width <- plot_height * img_ratio
-      } else {
-        plot_height <- plot_width / img_ratio
-      }
+    if (is.null(plot_height) || is.null(plot_width)) {
+      plot_height <- 500
+      plot_width <- 500
     }
+    if (plot_width / plot_height > img_ratio) {
+      plot_width <- plot_height * img_ratio
+    } else {
+      plot_height <- plot_width / img_ratio
+    }
+    
+    
     if (is.na(plot_height) || plot_height <= 0 || is.na(plot_width) || plot_width <= 0) {
       return(NULL) 
     }
