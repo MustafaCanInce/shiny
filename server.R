@@ -7,6 +7,7 @@ server <- function(input, output, session) {
   known_distance <- 1 #cm
   unitsofmetric <- "cm"
   file_path <- file.path(getwd(), "output")
+  print(file_path)
   l1 <- 1
   l2 <- 2
 
@@ -31,32 +32,8 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$imputation_Button, {
-    # Show a modal dialog box when the 'imputation_Button' is clicked
     showModal(modalDialog(
-      title = "Imputation of Missing Landmark",
       
-      div(
-        # F method explanation
-        p("Please select the F method to impute missing landmarks based on surrounding features."),
-        # Button for the F method
-        actionButton("f_method", "Guess Na Landmarks with F Method."),
-        # xyz method explanation
-        p("Please select the xyz method to impute missing landmarks based on spatial coordinates."),
-        # Button for the xyz method
-        actionButton("xyz_method", "Guess Na Landmarks with xyz Method.")
-      )
-    ))
-  })
-
-  observeEvent(input$xyz_method, {
-    showModal(modalDialog(
-      title = "xyz Method Imputation Settings",
-      actionButton("close_modal", "Close")
-    ))
-  })
-  
-  observeEvent(input$f_method, {
-    showModal(modalDialog(
       title = "F Method Imputation Settings",
       # Add a numeric input field for 'l1', with a default value of 'l1', 'l2'
       numericInput("l1_input", "l1:", value = l1),
@@ -64,40 +41,87 @@ server <- function(input, output, session) {
       # Add an file input for csv uploads.
       fileInput("csv_upload", "Upload CSV files", multiple = TRUE, accept = c(".csv")),
       # Add an action button for 'Guess NA Landmarks','Submit' and 'Close'
-      actionButton("guess_Button", "Guess NA Landmarks"),
-      actionButton("submit_imp", "Submit"),
+      tags$b("Imputation Method:"),
+      br(),
+        
+      actionButton("guess_Button_minf", "minF Method"),
       
-      actionButton("close_modal", "Close")
+      actionButton("guess_Button_with_mr", "Multiple Regression Method"),
+      br(),
+      br(),
+      
+      footer = tagList(actionButton("calculate_imp", "Submit")
+        ,actionButton("close_modal", "Close")) 
+      
     ))
   })
   
-  observeEvent(input$submit_imp, {
+  imp_method <- ""
+  observeEvent(input$guess_Button_with_mr, {
     # Check if the 'l1_input' or 'l2_input' field is empty
     if (input$l1_input == ""  || input$l2_input == "" ) {
       # If either field is empty, show an error message using 'shinyalert'
       shinyalert(title = "Error", 
-                 text = "Please fill all the fields", 
+                 text = "Please choose the reference anatomic landmarks.", 
                  type = "error", 
-                 closeOnClick = "cancel"
-        )
+                 
+      )
     }
+    
     else {
       # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
+      imp_method <<- "mr"
       l1 <<- input$l1_input
       l2 <<- input$l2_input
       shinyalert(title = "Success", 
                  text = "Your information saved successfully!", 
                  type = "success", 
-                 closeOnClick = "ok"
+                 
+                 
+      )
+      removeModal()
+    }
+  })
+  observeEvent(input$guess_Button_minf, {
+    
+    # Check if the 'l1_input' or 'l2_input' field is empty
+    if (input$l1_input == ""  || input$l2_input == "" ) {
+      # If either field is empty, show an error message using 'shinyalert'
+      shinyalert(title = "Error", 
+                 text = "Please choose the reference anatomic landmarks.", 
+                 type = "error", 
+                 
+        )
+    }
+    
+    else {
+      # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
+      imp_method <<- "minf"
+      l1 <<- input$l1_input
+      l2 <<- input$l2_input
+      shinyalert(title = "Success", 
+                 text = "Your information saved successfully!", 
+                 type = "success", 
+                 
                  
       )
       removeModal()
       }
     })
-  
-  observeEvent(input$guess_Button, {
-    show_modal_progress_line()
+  observeEvent(input$csv_upload, {
+    # Dosya yolunu al ve ters slaş işaretlerini normal slaş işaretlerine dönüştür
+    file_path <<- normalizePath(input$csv_upload$datapath, winslash="/")
+    # Dosya yolunun başındaki sürücü harfini kaldır
     
+    # Doğru formatta olan dosya yolunu yazdır
+    print(file_path)
+    # impute.missing() fonksiyonunu doğru dosya yolu ile çağır
+    #result <- impute.missing(file_path, l1, l2)
+  })
+  
+  observeEvent(input$calculate_imp, {
+    show_modal_progress_line()
+    print(imp_method)
     ## File path : The current working directory that should include all csv files.
     ## l1,l2 : The reference anatomic landmarks
     ## We should give an error if the user did not specify the l1 l2 
@@ -238,6 +262,7 @@ server <- function(input, output, session) {
       closeAllConnections()
       
       counter <- 0
+      counter_mr <- 0
       fstatt <- matrix(byrow = TRUE)
       ls <- matrix(byrow = TRUE)
       counterS <- matrix(byrow = TRUE)
@@ -299,11 +324,43 @@ server <- function(input, output, session) {
       
       yj2 = {D*C - A*{{A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B #Predicted y-coordinate
       
-      
       xmin <- as.numeric(unlist(xj2))
       ymin <- as.numeric(unlist(yj2))
       
-      return(c(xmin,ymin))
+      #return(c(xmin,ymin))
+      mr_data <- new_data
+      xt_mrs <- matrix(byrow = TRUE)
+      yt_mrs <- matrix(byrow = TRUE)
+      colnames(mr_data) <- c("v1", "v2")
+      imputed_Data <- mice(mr_data, method = "norm",print = FALSE) 
+      xt_mr = imputed_Data$imp$v1[1,1]  ####Tahmin edilen x koordinatı 
+      yt_mr = imputed_Data$imp$v2[1,1]  ####Tahmin edilen y koordinatı 
+      xt_mrs[counter_mr] = xt_mr
+      yt_mrs[counter_mr] = yt_mr
+      
+      ub_mr <- xt_mr
+      vb_mr <- yt_mr
+      C_mr = (ub_mr + 0.5)
+      
+      yj2_mr = {D*C_mr - A*{{A*D*C_mr + xl1*(A^2 + B^2) - B*vb_mr*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B####Tahmin edilen y koordinatı
+      
+      
+      xj2_mr = {A*D*C_mr + xl1*(A^2 + B^2) - B*vb_mr*D}/(A^2 + B^2) ####Tahmin edilen x koordinatı
+      
+      #{C_mr*D+A*xl1-B*yj+B*yl1}/A
+      xj2_mr <- as.numeric(unlist(xj2_mr))
+      
+      yj2_mr <- as.numeric(unlist(yj2_mr))
+      
+      
+      if (imp_method == "minf") {
+        return(c(xmin,ymin))
+      }
+      else if (imp_method == "mr") {
+        return(c(xj2_mr,yj2_mr))
+      }
+     
+      
     }
     remove_modal_progress()
     result <- impute.missing(file_path,l1,l2)
