@@ -1,6 +1,6 @@
 runShinyApp <- function(){
   required_packages <- c("rstudioapi", "shiny", "shinyWidgets", "shinyalert", "shinybusy", "shinyjs", 
-                       "tibble", "jpeg", "tiff", "png", "raster", "scales", "plotly", "shapes", "dplyr", "mice")
+                       "tibble", "jpeg", "tiff", "png", "raster", "scales", "plotly", "shapes", "dplyr", "mice", "grid")
 
   # Load packages that are already installed
   for (package in required_packages) {
@@ -12,7 +12,7 @@ runShinyApp <- function(){
   # Install and load packages that are not installed
   for (package in required_packages) {
     if (!require(package, character.only = TRUE)) {
-      install.packages(package, dependencies = FALSE)
+      install.packages(package, dependencies = TRUE)
       library(package, character.only = TRUE)
     }
   }

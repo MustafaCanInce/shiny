@@ -34,7 +34,7 @@ server <- function(input, output, session) {
   observeEvent(input$imputation_Button, {
     showModal(modalDialog(
       
-      title = "F Method Imputation Settings",
+      title = "Imputation Settings",
       # Add a numeric input field for 'l1', with a default value of 'l1', 'l2'
       numericInput("l1_input", "l1:", value = l1),
       numericInput("l2_input", "l2:", value = l2),
@@ -757,11 +757,78 @@ server <- function(input, output, session) {
     rasterImage(img, 0, 0, dim(img)[2], dim(img)[1])
     points(coord$x, coord$y, col = c("red"), cex = 2, pch = 20)
     
+    #observeEvent(input$save_img_Button, {
+    
+    
+    
+    
     if (nrow(coord) > 0) {
       for (i in 1:nrow(coord)) {
         text(coord$x[i], coord$y[i], labels = i, pos = 4, col = "red", cex = 2)
       }
+      #file_name <- file_names_list[index$current]
+      #output_file <- paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name)-1), ".png")
+      #dev.copy(png, output_file, width = dim(img)[2], height = dim(img)[1])
+      #dev.off()
+      
+      #png("my_plot.png", width=dim(img)[2], height=dim(img)[1])
+      #grid::grid.raster(img, interpolate=FALSE)
+      #grid::pointsGrob(x = coord$x, y = coord$y, pch=20, gp = grid::gpar(col="red"))
+      #dev.off()
     }
+    
+  })
+  observeEvent(input$save_img_Button, {
+    
+    
+    coord <- tibble(x = xy_new$x, y = xy_new$y)
+    if (length(images_path$data) == 0) {
+      return() 
+    }
+    else {
+      img_extension <- sub(".*\\.([[:alnum:]]+)$", "\\1", images_path$data[[index$current]])
+      if (img_extension == "jpg" || img_extension == "jpeg") {
+        img <- readJPEG(images_path$data[[index$current]])
+      } 
+      else if (img_extension == "png") {
+        img <- readPNG(images_path$data[[index$current]])
+      }
+      else if (img_extension == "tif" || img_extension == "tiff") {
+        img <- tiff::readTIFF(images_path$data[[index$current]])
+      }
+      else {
+        shinyalert("Oops!", "Invalid file type. Please upload JPEG,JPG or PNG image.", type = "error")
+        return()
+      }
+    }
+    points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
+    coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
+    point <- rbind(point, coordinates)
+    
+    plot(coord$x, coord$y, xlim = c(0, dim(img)[2]), ylim = c(0, dim(img)[1]), xlab = "X", ylab = "Y", xaxt = "n", yaxt = "n")
+    axis(3, at = seq(0, dim(img)[2], by = 50))
+    axis(2, at = seq(0, dim(img)[1], by = 50), las = 2)
+    
+    rasterImage(img, 0, 0, dim(img)[2], dim(img)[1])
+    points(coord$x, coord$y, col = c("red"), cex = 2, pch = 20)
+    
+    if (is.null(xy_new$x)) {
+      shinyalert("Oops!", "No click has been made yet.", type = "error")
+      return()
+    }
+    
+    
+    if (nrow(coord) > 0) {
+      for (i in 1:nrow(coord)) {
+        text(coord$x[i], coord$y[i], labels = i, pos = 4, col = "red", cex = 2)
+      }
+      file_name <- file_names_list[index$current]
+      output_file <- paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name)-1), ".png")
+      dev.copy(png, output_file, width = dim(img)[2], height = dim(img)[1])
+      dev.off()
+      shinyalert("Success.", "Image output with landmarks saved successfully.", type = "success")
+    }
+    
   })
   
   # Function that listens to the "input$clear_button" event. When this event is triggered, 
