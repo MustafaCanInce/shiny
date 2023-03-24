@@ -7,11 +7,10 @@ server <- function(input, output, session) {
   known_distance <- 1 #cm
   unitsofmetric <- "cm"
   file_path <- file.path(getwd(), "output")
-  print(file_path)
   l1 <- 1
   l2 <- 2
 
-  output$file_names <- renderPrint({
+  output$file_names <- renderText({
     # Get the selected image file(s)
     file_list <- input$image_file
     # If no file has been selected, return an empty string
@@ -26,8 +25,9 @@ server <- function(input, output, session) {
       # Split the file names into a list of individual names
       file_names_list <<- strsplit(file_names, " ")
       # Combine the file names into a single string with a line break between each name
-      paste(file_names, collapse = "<br>")
-      
+      file_names_only <- sapply(file_names_list, `[`, 1)
+      # Return the file names without any additional formatting
+      return(paste(file_names_only, collapse = "<br>"))
     }
   })
   
@@ -114,7 +114,6 @@ server <- function(input, output, session) {
     # Dosya yolunun başındaki sürücü harfini kaldır
     
     # Doğru formatta olan dosya yolunu yazdır
-    print(file_path)
     # impute.missing() fonksiyonunu doğru dosya yolu ile çağır
     #result <- impute.missing(file_path, l1, l2)
   })
@@ -757,24 +756,10 @@ server <- function(input, output, session) {
     rasterImage(img, 0, 0, dim(img)[2], dim(img)[1])
     points(coord$x, coord$y, col = c("red"), cex = 2, pch = 20)
     
-    #observeEvent(input$save_img_Button, {
-    
-    
-    
-    
     if (nrow(coord) > 0) {
       for (i in 1:nrow(coord)) {
         text(coord$x[i], coord$y[i], labels = i, pos = 4, col = "red", cex = 2)
       }
-      #file_name <- file_names_list[index$current]
-      #output_file <- paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name)-1), ".png")
-      #dev.copy(png, output_file, width = dim(img)[2], height = dim(img)[1])
-      #dev.off()
-      
-      #png("my_plot.png", width=dim(img)[2], height=dim(img)[1])
-      #grid::grid.raster(img, interpolate=FALSE)
-      #grid::pointsGrob(x = coord$x, y = coord$y, pch=20, gp = grid::gpar(col="red"))
-      #dev.off()
     }
     
   })
