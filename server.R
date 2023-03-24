@@ -331,7 +331,7 @@ server <- function(input, output, session) {
       xt_mrs <- matrix(byrow = TRUE)
       yt_mrs <- matrix(byrow = TRUE)
       colnames(mr_data) <- c("v1", "v2")
-      imputed_Data <- mice(mr_data, method = "norm",print = FALSE) 
+      imputed_Data <- mice(mr_data, method = "norm",print = FALSE, remove.collinear = FALSE) 
       xt_mr = imputed_Data$imp$v1[1,1]  ####Tahmin edilen x koordinatı 
       yt_mr = imputed_Data$imp$v2[1,1]  ####Tahmin edilen y koordinatı 
       xt_mrs[counter_mr] = xt_mr
