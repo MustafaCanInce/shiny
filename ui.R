@@ -48,17 +48,17 @@ ui <- fluidPage(
                fileInput(inputId = "image_file", label = NULL, multiple = TRUE, accept = c(".JPG", ".JPEG", ".PNG", ".TIF")),
                verbatimTextOutput("file_names"),
                actionButton(
-                 icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = HTML("Missing Value<br/>Imputation")),
+                 icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = HTML("Missing Value<br/>Imputation"), style = "line-height: 2vh;"),
                actionButton(
                  icon = NULL, inputId = "next_Button"      , width = "15vh", class = "all_action_button", label = "Next Image"),
                actionButton(
                  icon = NULL, inputId = "prev_Button"      , width = "15vh", class = "all_action_button", label = "Previous Image"),
                actionButton(
-                 icon = NULL, inputId = "save_img_Button"  , width = "15vh", class = "all_action_button", label = HTML("Save Image<br/>with Landmark")),
+                 icon = NULL, inputId = "save_img_Button"  , width = "15vh", class = "all_action_button", label = HTML("Save Image<br/>with Landmark"), style = "line-height: 2vh;"),
                actionButton(
-                 icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = HTML("Add Missing<br/>Landmark")),
+                 icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = HTML("Add Missing<br/>Landmark"), style = "line-height: 2vh;"),
                actionButton(
-                 icon = NULL, inputId = "undo_Button"      , width = "15vh", class = "all_action_button", label = HTML("Undo Last<br/>Landmark")),
+                 icon = NULL, inputId = "undo_Button"      , width = "15vh", class = "all_action_button", label = HTML("Undo Last<br/>Landmark"), style = "line-height: 2vh;"),
                actionButton(
                  icon = NULL, inputId = "clear_button"     , width = "15vh", class = "all_action_button", label = "Clear Landmarks"),
                actionButton(
