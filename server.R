@@ -389,10 +389,24 @@ server <- function(input, output, session) {
       selectInput("knowndistance_units_input", "Units of Length:", knowndistance_options, selected = knowndistance_options[1]),
       numericInput("knowndistance_input", "Known Distance:", value = known_distance),
       actionButton("ratio_button", "Reset the Ratio"),
+      actionButton("del_last_meas", "Delete last measurement"),
       actionButton("submit_id", "Submit"),
       actionButton("close_modal", "Close"),
       footer = NULL
     ))
+  })
+  
+  observeEvent(input$del_last_meas, {
+    if (nrow(results_df) == 0) {
+      shinyalert("Measurement has not been made before. please use after measuring.", type = "warning")
+      return()
+    }
+    results_df <<- results_df[-nrow(results_df), ]
+    shinyalert(title = "Success", 
+               text = "Last measurement successfully deleted.", 
+               type = "success", 
+               closeOnClick = "cancel"
+    )
   })
   
   # When input is detected, it checks if the "name_input" or "resolution_input" fields are empty. If either field is empty, it displays an error message using the "shinyalert" function.
@@ -565,7 +579,7 @@ server <- function(input, output, session) {
         result = result / 100
         distance_between_two_landmarks <- result / ratio
       }
-      showNotification(paste0("scaling was successful measured distance: ",distance_between_two_landmarks," ",unitsofmetric))
+      showNotification(paste0("Scaling was successful measured distance: ",distance_between_two_landmarks," ",unitsofmetric))
       results_df <<- results_df %>% add_row(distance_between_two_landmarks = distance_between_two_landmarks, unitsofmetric = unitsofmetric)
       
       for (i in 1:2) {
