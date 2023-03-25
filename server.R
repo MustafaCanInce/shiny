@@ -35,19 +35,18 @@ server <- function(input, output, session) {
     showModal(modalDialog(
       
       title = "Imputation Settings",
+      
+      tags$div(
+        "L1 and L2 are anatomical reference landmarks. Please provide them."
+      ),
       # Add a numeric input field for 'l1', with a default value of 'l1', 'l2'
       numericInput("l1_input", "l1:", value = l1),
       numericInput("l2_input", "l2:", value = l2),
       # Add an file input for csv uploads.
-      fileInput("csv_upload", "Upload CSV files", multiple = TRUE, accept = c(".csv")),
+      #fileInput("csv_upload", "Upload CSV files", multiple = TRUE, accept = c(".csv")),
       # Add an action button for 'Guess NA Landmarks','Submit' and 'Close'
-      tags$b("Imputation Method:"),
-      br(),
-        
-      actionButton("guess_Button_minf", "minF Method"),
-      
-      actionButton("guess_Button_with_mr", "Multiple Regression Method"),
-      br(),
+
+      radioButtons(inputId = "imp_radio_button" , label = "Imputation Method:", choices = c("minF Method", "Multiple Regression Method")),
       br(),
       
       footer = tagList(actionButton("calculate_imp", "Submit")
@@ -57,54 +56,7 @@ server <- function(input, output, session) {
   })
   
   imp_method <- ""
-  observeEvent(input$guess_Button_with_mr, {
-    # Check if the 'l1_input' or 'l2_input' field is empty
-    if (input$l1_input == ""  || input$l2_input == "" ) {
-      # If either field is empty, show an error message using 'shinyalert'
-      shinyalert(title = "Error", 
-                 text = "Please choose the reference anatomic landmarks.", 
-                 type = "error", 
-                 
-      )
-    }
-    
-    else {
-      # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
-      imp_method <<- "mr"
-      l1 <<- input$l1_input
-      l2 <<- input$l2_input
-      shinyalert(title = "Success", 
-                 text = "Your information saved successfully!", 
-                 type = "success", 
-                 
-                 
-      )
-    }
-  })
-  observeEvent(input$guess_Button_minf, {
-    
-    # Check if the 'l1_input' or 'l2_input' field is empty
-    if (input$l1_input == ""  || input$l2_input == "" ) {
-      # If either field is empty, show an error message using 'shinyalert'
-      shinyalert(title = "Error", 
-                 text = "Please choose the reference anatomic landmarks.", 
-                 type = "error", 
-                 
-        )
-    }
-    
-    else {
-      # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
-      imp_method <<- "minf"
-      l1 <<- input$l1_input
-      l2 <<- input$l2_input
-      shinyalert(title = "Success", 
-                 text = "Your information saved successfully!", 
-                 type = "success", 
-                 
-      )
-      }
-    })
+
   observeEvent(input$csv_upload, {
     # Dosya yolunu al ve ters slaş işaretlerini normal slaş işaretlerine dönüştür
     file_path <<- normalizePath(input$csv_upload$datapath, winslash="/")
@@ -116,6 +68,29 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$calculate_imp, {
+    # Check if the 'l1_input' or 'l2_input' field is empty
+    if (input$l1_input == ""  || input$l2_input == "" ) {
+      # If either field is empty, show an error message using 'shinyalert'
+      shinyalert(title = "Error", 
+                 text = "Please choose the reference anatomic landmarks.", 
+                 type = "error", 
+                 
+      )
+    }
+    
+    else {
+      # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
+      if(input$imp_radio_button == "minF Method"){
+        imp_method <<- "minf"
+      }
+      else{
+        imp_method <<- "mr"
+      }
+      print(imp_method)
+      l1 <<- input$l1_input
+      l2 <<- input$l2_input
+      
+    }
     show_modal_progress_line()
     ## File path : The current working directory that should include all csv files.
     ## l1,l2 : The reference anatomic landmarks
@@ -123,6 +98,7 @@ server <- function(input, output, session) {
     
     ## This function impute the missing landmark and fill the given dataset.
     impute.missing <- function(file_path,l1,l2) { 
+      
       
       files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
       
@@ -347,17 +323,13 @@ server <- function(input, output, session) {
       
       yj2_mr <- as.numeric(unlist(yj2_mr))
       
-      if (imp_method == "") {
-        shinyalert("Warning!", "Please select a method.", type = "warning")
-        return()
-      } 
-      else if (imp_method == "minf") {
+      
+      if (imp_method == "minf") {
         return(c(xmin,ymin))
       }
       else if (imp_method == "mr") {
         return(c(xj2_mr,yj2_mr))
       }
-     
       
     }
     remove_modal_progress()
@@ -369,7 +341,7 @@ server <- function(input, output, session) {
       data[is.na(data$y), "y"] <- result[[2]]
       
       dir.create(file.path(file_path, "predictedCsv_output"), showWarnings = FALSE)
-      write.csv(data, file = file.path(file_path, "predictedCsv_output", paste0("predicted_", files[1])), row.names = FALSE)
+      write.csv(data, file = file.path(file_path, "predictedCsv_output", paste0("predicted_", imp_method,"_", files[1])), row.names = FALSE)
       
       lapply(list.files(path = tempdir(), pattern = "file"), close)
       
@@ -390,9 +362,8 @@ server <- function(input, output, session) {
       numericInput("knowndistance_input", "Known Distance:", value = known_distance),
       actionButton("ratio_button", "Reset the Ratio"),
       actionButton("del_last_meas", "Delete last measurement"),
-      actionButton("submit_id", "Submit"),
-      actionButton("close_modal", "Close"),
-      footer = NULL
+      footer = tagList(actionButton("submit_id", "Submit"),
+                       actionButton("close_modal", "Close")) 
     ))
   })
   
@@ -464,63 +435,75 @@ server <- function(input, output, session) {
   observeEvent(input$done_Button,{
     showModal(modalDialog(
       title = "Done Settings",
-      actionButton("CsvWithscale_Button", "save csv files at scale"),
-      actionButton("CsvWithoutscale_Button", "save csv files without scale")
+      tags$div(
+        "If you want to use your scale factor metrics on your coordinates please choose",
+        tags$br(),
+        "'save csv files with scale' option. "
+      ),
+      radioButtons(inputId = "done_radio_button" , label = "Output types", choices = c("save csv files with scale", "save csv files without scale")),
+      footer = tagList(
+        actionButton("done_submit_button", "Submit"),
+        actionButton("close_modal", "Close"))
     ))
   })
   
-  observeEvent(input$CsvWithscale_Button, {
-    if (is.null(ratio) || ratio == 0) {
-      shinyalert("Error!", "Ratio cannot be NULL or 0.", type = "error")
-      return()
+  observeEvent(input$done_submit_button ,{
+    if (input$done_radio_button == "save csv files at scale"){
+      if (is.null(ratio) || ratio == 0) {
+        shinyalert("Error!", "Ratio cannot be NULL or 0.", type = "error")
+        return()
+      }
+      x <- xy_new$x[xy_new$x != 0]
+      y <- xy_new$y[xy_new$y != 0]
+      df <- data.frame(x, y)
+      df_new <- df * known_distance/ratio
+      
+      
+      file = paste0("scale_",file_names_list[index$current],"_",user_name,".csv")
+      if (!dir.exists("output")) {
+        dir.create("output")
+      }
+      results_df_string <- ""
+      results_df_string <- capture.output(print(results_df))
+      results_df_string <- paste( "#", results_df_string,sep = "")
+      results_df_string <- paste(results_df_string, collapse = "\n")
+      
+      file_con <- file(paste0("output/", file), open = "w")
+      
+      write.csv(df_new, file = file_con, row.names = FALSE)
+      writeLines(c(results_df_string), file_con)
+      writeLines(c("# Ratio(measured length) ", paste0("#", ratio)), file_con)
+      writeLines(c("# scale factor ", paste0("#", known_distance/ratio)), file_con)
+      close(file_con)
+      shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
     }
-    x <- xy_new$x[xy_new$x != 0]
-    y <- xy_new$y[xy_new$y != 0]
-    df <- data.frame(x, y)
-    df_new <- df * known_distance/ratio
-    
-    
-    file = paste0("scale_",file_names_list[index$current],"_",user_name,".csv")
-    if (!dir.exists("output")) {
-      dir.create("output")
+    else if (input$done_radio_button == "save csv files without scale"){
+      
+      x <- xy_new$x[xy_new$x != 0]
+      y <- xy_new$y[xy_new$y != 0]
+      df <- data.frame(x, y)
+      file = paste0(file_names_list[index$current],"_",user_name,".csv")
+      if (!dir.exists("output")) {
+        dir.create("output")
+      }
+      results_df_string <- ""
+      results_df_string <- capture.output(print(results_df))
+      results_df_string <- paste( "#", results_df_string,sep = "")
+      results_df_string <- paste(results_df_string, collapse = "\n")
+      
+      file_con <- file(paste0("output/", file), open = "w")
+      
+      write.csv(df, file = file_con, row.names = FALSE)
+      writeLines(c(results_df_string), file_con)
+      close(file_con)
+      shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
     }
-    results_df_string <- ""
-    results_df_string <- capture.output(print(results_df))
-    results_df_string <- paste( "#", results_df_string,sep = "")
-    results_df_string <- paste(results_df_string, collapse = "\n")
-    
-    file_con <- file(paste0("output/", file), open = "w")
-    
-    write.csv(df_new, file = file_con, row.names = FALSE)
-    writeLines(c(results_df_string), file_con)
-    writeLines(c("# Ratio(measured length) ", paste0("#", ratio)), file_con)
-    writeLines(c("# scale factor ", paste0("#", known_distance/ratio)), file_con)
-    close(file_con)
-    shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
   })
   
+
+  
   # The non-zero x and y values from xy_new data to a CSV file with the current index's filename from image_names, and shows an alert.
-  observeEvent(input$CsvWithoutscale_Button, {
-    
-    x <- xy_new$x[xy_new$x != 0]
-    y <- xy_new$y[xy_new$y != 0]
-    df <- data.frame(x, y)
-    file = paste0(file_names_list[index$current],"_",user_name,".csv")
-    if (!dir.exists("output")) {
-      dir.create("output")
-    }
-    results_df_string <- ""
-    results_df_string <- capture.output(print(results_df))
-    results_df_string <- paste( "#", results_df_string,sep = "")
-    results_df_string <- paste(results_df_string, collapse = "\n")
-    
-    file_con <- file(paste0("output/", file), open = "w")
-    
-    write.csv(df, file = file_con, row.names = FALSE)
-    writeLines(c(results_df_string), file_con)
-    close(file_con)
-    shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
-  })
+
   
   colnames(point) <- c("id","x","y")
   

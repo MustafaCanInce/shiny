@@ -54,7 +54,7 @@ ui <- fluidPage(
                actionButton(
                  icon = NULL, inputId = "prev_Button"      , width = "15vh", class = "all_action_button", label = "Previous Image"),
                actionButton(
-                 icon = NULL, inputId = "save_img_Button"  , width = "15vh", class = "all_action_button", label = HTML("Save Image<br/>with Landmark"), style = "line-height: 2vh;"),
+                 icon = NULL, inputId = "save_img_Button"  , width = "15vh", class = "all_action_button", label = HTML("Save Image<br/>as Marked"), style = "line-height: 2vh;"),
                actionButton(
                  icon = NULL, inputId = "missing_Button"   , width = "15vh", class = "all_action_button", label = HTML("Add Missing<br/>Landmark"), style = "line-height: 2vh;"),
                actionButton(
