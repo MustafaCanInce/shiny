@@ -27,7 +27,7 @@ server <- function(input, output, session) {
       # Combine the file names into a single string with a line break between each name
       file_names_only <- sapply(file_names_list, `[`, 1)
       # Return the file names without any additional formatting
-      return(paste(file_names_only, collapse = "<br>"))
+      return(paste(file_names_only, collapse = "/"))
     }
   })
   
@@ -79,7 +79,6 @@ server <- function(input, output, session) {
                  
                  
       )
-      removeModal()
     }
   })
   observeEvent(input$guess_Button_minf, {
@@ -103,9 +102,7 @@ server <- function(input, output, session) {
                  text = "Your information saved successfully!", 
                  type = "success", 
                  
-                 
       )
-      removeModal()
       }
     })
   observeEvent(input$csv_upload, {
@@ -120,7 +117,6 @@ server <- function(input, output, session) {
   
   observeEvent(input$calculate_imp, {
     show_modal_progress_line()
-    print(imp_method)
     ## File path : The current working directory that should include all csv files.
     ## l1,l2 : The reference anatomic landmarks
     ## We should give an error if the user did not specify the l1 l2 
@@ -351,8 +347,11 @@ server <- function(input, output, session) {
       
       yj2_mr <- as.numeric(unlist(yj2_mr))
       
-      
-      if (imp_method == "minf") {
+      if (imp_method == "") {
+        shinyalert("Warning!", "Please select a method.", type = "warning")
+        return()
+      } 
+      else if (imp_method == "minf") {
         return(c(xmin,ymin))
       }
       else if (imp_method == "mr") {
@@ -368,7 +367,10 @@ server <- function(input, output, session) {
       data <- read.csv(file.path(file_path, files[1]),comment.char = "#")
       data[is.na(data$x), "x"] <- result[[1]]
       data[is.na(data$y), "y"] <- result[[2]]
-      write.csv(data, file = file.path(file_path, paste0("predicted_", files[1])), row.names = FALSE)
+      
+      dir.create(file.path(file_path, "predictedCsv_output"), showWarnings = FALSE)
+      write.csv(data, file = file.path(file_path, "predictedCsv_output", paste0("predicted_", files[1])), row.names = FALSE)
+      
       lapply(list.files(path = tempdir(), pattern = "file"), close)
       
       shinyalert("Success!", "Predicted landmark are saved.", type = "success")
@@ -384,7 +386,7 @@ server <- function(input, output, session) {
     showModal(modalDialog(
       title = "Settings",
       textInput("name_input", "Name:", value = user_name, placeholder = "Enter your name"),
-      selectInput("knowndistance_units_input", "Units of Lengthn:", knowndistance_options, selected = knowndistance_options[1]),
+      selectInput("knowndistance_units_input", "Units of Length:", knowndistance_options, selected = knowndistance_options[1]),
       numericInput("knowndistance_input", "Known Distance:", value = known_distance),
       actionButton("ratio_button", "Reset the Ratio"),
       actionButton("submit_id", "Submit"),
@@ -454,7 +456,10 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$CsvWithscale_Button, {
-
+    if (is.null(ratio) || ratio == 0) {
+      shinyalert("Error!", "Ratio cannot be NULL or 0.", type = "error")
+      return()
+    }
     x <- xy_new$x[xy_new$x != 0]
     y <- xy_new$y[xy_new$y != 0]
     df <- data.frame(x, y)
@@ -474,7 +479,7 @@ server <- function(input, output, session) {
     
     write.csv(df_new, file = file_con, row.names = FALSE)
     writeLines(c(results_df_string), file_con)
-    writeLines(c("# measured length ", paste0("#", ratio)), file_con)
+    writeLines(c("# Ratio(measured length) ", paste0("#", ratio)), file_con)
     writeLines(c("# scale factor ", paste0("#", known_distance/ratio)), file_con)
     close(file_con)
     shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
@@ -808,7 +813,9 @@ server <- function(input, output, session) {
         text(coord$x[i], coord$y[i], labels = i, pos = 4, col = "red", cex = 2)
       }
       file_name <- file_names_list[index$current]
-      output_file <- paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name)-1), ".png")
+      dir.create(file.path(file_path, "markedImage_output"), showWarnings = TRUE)
+      output_file <- file.path(file_path, "markedImage_output", paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name)-1), ".png"))
+      
       dev.copy(png, output_file, width = dim(img)[2], height = dim(img)[1])
       dev.off()
       shinyalert("Success.", "Image output with landmarks saved successfully.", type = "success")
