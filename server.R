@@ -86,7 +86,6 @@ server <- function(input, output, session) {
       else{
         imp_method <<- "mr"
       }
-      print(imp_method)
       l1 <<- input$l1_input
       l2 <<- input$l2_input
       
@@ -440,7 +439,7 @@ server <- function(input, output, session) {
         tags$br(),
         "'save csv files with scale' option. "
       ),
-      radioButtons(inputId = "done_radio_button" , label = "Output types", choices = c("save csv files with scale", "save csv files without scale")),
+      radioButtons(inputId = "done_radio_button" , label = "Output types", choices = c("save csv files at scale", "save csv files without scale")),
       footer = tagList(
         actionButton("done_submit_button", "Submit"),
         actionButton("close_modal", "Close"))
@@ -810,6 +809,11 @@ server <- function(input, output, session) {
         text(coord$x[i], coord$y[i], labels = i, pos = 4, col = "red", cex = 2)
       }
       file_name <- file_names_list[index$current]
+      
+      if (!file.exists("output")) {
+        dir.create("output")
+      }
+      
       dir.create(file.path(file_path, "markedImage_output"), showWarnings = TRUE)
       output_file <- file.path(file_path, "markedImage_output", paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name)-1), ".png"))
       
