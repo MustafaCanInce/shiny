@@ -22,6 +22,8 @@ server <- function(input, output, session) {
       file_names <- file_list$name
       # Replace backslashes in the file paths with forward slashes
       file_names <- gsub("\\\\", "/", file_names)
+      # Remove spaces in file names
+      file_names <- gsub(" ", "", file_names)
       # Split the file names into a list of individual names
       file_names_list <<- strsplit(file_names, " ")
       # Combine the file names into a single string with a line break between each name
@@ -335,7 +337,18 @@ server <- function(input, output, session) {
     result <- impute.missing(file_path,l1,l2)
     if (!is.null(result)) {
       files <- list.files(file_path, pattern = '.csv')
-      data <- read.csv(file.path(file_path, files[1]),comment.char = "#")
+      # NA içeren dosyanın adını bulmak için döngü
+      for (file in files) {
+        # Dosya okuma
+        df <- read.csv(file.path(file_path, file), header = TRUE, sep = ",", comment.char = "#")
+        # NA değeri var mı kontrol etme
+        if (sum(is.na(df)) > 0) {
+          # NA değeri içeren dosya adını files değişkenine atama
+          files <- file
+          break
+        }
+      }
+      data <- read.csv(file.path(file_path, files),comment.char = "#")
       data[is.na(data$x), "x"] <- result[[1]]
       data[is.na(data$y), "y"] <- result[[2]]
       
@@ -497,6 +510,7 @@ server <- function(input, output, session) {
       close(file_con)
       shinyalert("Success!", "Image landmarks have been saved to 'output' folder.", type = "success")
     }
+    removeModal()
   })
   
 
