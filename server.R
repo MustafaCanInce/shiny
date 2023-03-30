@@ -157,8 +157,6 @@ server <- function(input, output, session) {
       #Adding null data to the beginning of the list 
       
       vector_data <- c(unlist(null_image_data,use.names = FALSE),vector_data)
-      
-      
       #Put all data into a structure
       st_data <-  structure(vector_data,.Dim = as.integer(c(nr,nc,nf)))
       rm(vector_data)
@@ -167,9 +165,11 @@ server <- function(input, output, session) {
       #row,column,sublist
       xl1 <- st_data[l1,1,1] #x coordinate of the l1
       xl2 <- st_data[l2,1,1]  #x coordinate of the l2
-      
       yl1 <- st_data[l1,2,1] #y coordinate of the l1
       yl2 <- st_data[l2,2,1] #y coordinate of the l2
+      D = (xl2 - xl1)^2 + (yl2 - yl1)^2
+      A = xl2 - xl1
+      B = yl2 - yl1
       
       #Create bookstein coordinate from the missing data
       my.dat.book <- bookstein2d(st_data)
@@ -180,6 +180,8 @@ server <- function(input, output, session) {
       i = 1  
       new_data <- data.frame(matrix(nrow = nf, ncol = 2))
       colnames(new_data) <- c("x", "y")
+      print(nli)
+      print(my.dat.book.cor)
       for (i in 1:nf) {
         new_data[i,1] <- my.dat.book.cor[nli,1,i]
         new_data[i,2] <- my.dat.book.cor[nli,2,i]
@@ -187,114 +189,152 @@ server <- function(input, output, session) {
       
       #Applying the F approach
       
-      i = 2
-      distance_null_to_l1 <- matrix(nrow = nf, ncol = 1)
-      for (i in 2:nf) {       
-        temp = my.dat.book.cor[,,i]
-        xc1 <- temp[l1,1]  #x-coordinate of the l1 
-        yc1 <- temp[l1,2]  #y-coordinate of the l1
-        xc3 <- temp[nli,1] #x-coordinate of the null_landmark
-        yc3 <- temp[nli,2] #y-coordinate of the null_landmark
-        distance_null_to_l1[i,1] = sqrt((xc3 - xc1)^2 + (yc3 - yc1)^2)#Euclidean distance
-      }
-      
-      distance_null_to_l1 <- distance_null_to_l1[-1,] #remove the NA 
-      mean_distance_null_to_l1 = mean(distance_null_to_l1) # calculate the mean
-      
-      i = 2
-      distance_null_to_l2 <- data.frame(matrix(nrow = nf, ncol = 1))
-      for (i in 2:nf)  {       
-        temp = my.dat.book.cor[,,i]
-        xc2 <- temp[l2,1]   #x-coordinate of the l2 
-        yc2 <- temp[l2,2]   #y-coordinate of the l2
-        xc3 <- temp[nli,1]  #x-coordinate of the null_landmark
-        yc3 <- temp[nli,2]  #y-coordinate of the null_landmark
-        distance_null_to_l2[i,1] = sqrt((xc3 - xc2)^2 + (yc3 - yc2)^2) #Euclidean distance
-      }
-      distance_null_to_l2 <- distance_null_to_l2[-1,] #remove the NA 
-      mean_distance_null_to_l2 = mean(distance_null_to_l2) # calculate the mean
-      
-      
-      c = (-1/2)*(mean_distance_null_to_l1^2 - mean_distance_null_to_l2^2)  
-      d = sqrt(mean_distance_null_to_l1^2 - (c + 0.5)^2)    
-      y4 <- new_data
-      y4 <- as.matrix(y4)
-      y4[1,1] <- c
-      y4[1,2] <- d
-      
-      #Calculate confidence interval
-      d2 <- distance_null_to_l1
-      d2lb <- mean_distance_null_to_l1 - 1.96*(sd(d2)/sqrt(length(d2)))  #### lower bound
-      d2ub <- mean_distance_null_to_l1 + 1.96*(sd(d2)/sqrt(length(d2))) #### upper bound
-      
-      d3 <- distance_null_to_l2
-      d3lb <- mean_distance_null_to_l2 - 1.96*(sd(d3)/sqrt(length(d3)))  #### lower bound
-      d3ub <- mean_distance_null_to_l2 + 1.96*(sd(d3)/sqrt(length(d3)))  #### upper bound
-      
-      closeAllConnections()
-      
-      counter <- 0
-      counter_mr <- 0
-      fstatt <- matrix(byrow = TRUE)
-      ls <- matrix(byrow = TRUE)
-      counterS <- matrix(byrow = TRUE)
-      cs <- matrix(byrow = TRUE)
-      ds <- matrix(byrow = TRUE)
-      closeAllConnections()
-      
-      #Calculate the f-statistic
-      for (c in seq(d2lb, d2ub, 0.2) )  {
-        for (d in seq(d3lb, d3ub, 0.2) ) {
-          counter <- counter + 1
-          y4[1,1] <- c
-          y4[1,2] <- d
-          gakt = nf*(mean(y4[,1]) - mean(y4))^2 + nf*(mean(y4[,2]) - mean(y4))^2
-          cat(gakt, sep = "\n", file = "gakt.txt", append = TRUE)
-          sink("gkt.txt")
-          k = 2
-          for (i in 1:k) {
-            for (j in 1:nf) {
-              t = ((y4[j,i] - mean(y4))^2)
-              cat(t, sep = "\n", file = "gkt.txt", append = TRUE)
-              j = j + 1
-            }
-            i = i + 1
-          }
-          gkt <- read.table("gkt.txt")
-          suppressWarnings(gkt <- as.numeric(unlist(gkt)))
-          gktson = sum(gkt)
-          gikt = gktson - gakt
-          fstat = ((gakt/(k - 1))/(gikt/(2*nf - k))) 
-          fstatt[counter] <- fstat
-          closeAllConnections()
-          ##ls[counter]<-l
-          counterS[counter] <- counter
-          cs[counter] <- c
-          ds[counter] <- d
+      if (imp_method == "minf") {
+        i = 2
+        distance_null_to_l1 <- matrix(nrow = nf, ncol = 1)
+        for (i in 2:nf) {       
+          temp = my.dat.book.cor[,,i]
+          xc1 <- temp[l1,1]  #x-coordinate of the l1 
+          yc1 <- temp[l1,2]  #y-coordinate of the l1
+          xc3 <- temp[nli,1] #x-coordinate of the null_landmark
+          yc3 <- temp[nli,2] #y-coordinate of the null_landmark
+          distance_null_to_l1[i,1] = sqrt((xc3 - xc1)^2 + (yc3 - yc1)^2)#Euclidean distance
         }
+        
+        distance_null_to_l1 <- distance_null_to_l1[-1,] #remove the NA 
+        mean_distance_null_to_l1 = mean(distance_null_to_l1) # calculate the mean
+        
+        i = 2
+        distance_null_to_l2 <- data.frame(matrix(nrow = nf, ncol = 1))
+        for (i in 2:nf)  {       
+          temp = my.dat.book.cor[,,i]
+          xc2 <- temp[l2,1]   #x-coordinate of the l2 
+          yc2 <- temp[l2,2]   #y-coordinate of the l2
+          xc3 <- temp[nli,1]  #x-coordinate of the null_landmark
+          yc3 <- temp[nli,2]  #y-coordinate of the null_landmark
+          distance_null_to_l2[i,1] = sqrt((xc3 - xc2)^2 + (yc3 - yc2)^2) #Euclidean distance
+        }
+        print(distance_null_to_l2)
+        distance_null_to_l2 <- distance_null_to_l2[-1,] #remove the NA 
+        print("after")
+        print(distance_null_to_l2)
+        mean_distance_null_to_l2 = mean(distance_null_to_l2) # calculate the mean
+        
+        
+        c = (-1/2)*(mean_distance_null_to_l1^2 - mean_distance_null_to_l2^2)  
+        d = sqrt(mean_distance_null_to_l1^2 - (c + 0.5)^2)    
+        y4 <- new_data
+        y4 <- as.matrix(y4)
+        y4[1,1] <- c
+        y4[1,2] <- d
+        
+        #Calculate confidence interval
+        d2 <- distance_null_to_l1
+        d2lb <- mean_distance_null_to_l1 - 1.96*(sd(d2)/sqrt(length(d2)))  #### lower bound
+        d2ub <- mean_distance_null_to_l1 + 1.96*(sd(d2)/sqrt(length(d2))) #### upper bound
+        
+        d3 <- distance_null_to_l2
+        d3lb <- mean_distance_null_to_l2 - 1.96*(sd(d3)/sqrt(length(d3)))  #### lower bound
+        d3ub <- mean_distance_null_to_l2 + 1.96*(sd(d3)/sqrt(length(d3)))  #### upper bound
+        
         closeAllConnections()
+        
+        counter <- 0
+        
+        fstatt <- matrix(byrow = TRUE)
+        ls <- matrix(byrow = TRUE)
+        counterS <- matrix(byrow = TRUE)
+        cs <- matrix(byrow = TRUE)
+        ds <- matrix(byrow = TRUE)
+        closeAllConnections()
+        
+        #Calculate the f-statistic
+        for (c in seq(d2lb, d2ub, 0.2) )  {
+          for (d in seq(d3lb, d3ub, 0.2) ) {
+            counter <- counter + 1
+            y4[1,1] <- c
+            y4[1,2] <- d
+            gakt = nf*(mean(y4[,1]) - mean(y4))^2 + nf*(mean(y4[,2]) - mean(y4))^2
+            cat(gakt, sep = "\n", file = "gakt.txt", append = TRUE)
+            sink("gkt.txt")
+            k = 2
+            for (i in 1:k) {
+              for (j in 1:nf) {
+                t = ((y4[j,i] - mean(y4))^2)
+                cat(t, sep = "\n", file = "gkt.txt", append = TRUE)
+                j = j + 1
+              }
+              i = i + 1
+            }
+            gkt <- read.table("gkt.txt")
+            suppressWarnings(gkt <- as.numeric(unlist(gkt)))
+            gktson = sum(gkt)
+            gikt = gktson - gakt
+            fstat = ((gakt/(k - 1))/(gikt/(2*nf - k))) 
+            fstatt[counter] <- fstat
+            closeAllConnections()
+            ##ls[counter]<-l
+            counterS[counter] <- counter
+            cs[counter] <- c
+            ds[counter] <- d
+          }
+          closeAllConnections()
+        }
+        
+        # Arrange the result for Min(F) criterion
+        ts <- rbind(counterS, cs, ds, fstatt)
+        ts <- t(ts)
+        ts <- as.data.frame(ts)
+        colnames(ts) <- c("COUNTER", "X", "Y", "F")
+        minn <- ts %>% 
+          slice(which.min(F))
+        
+        
+        #Reverting from bookstein coordinates to original coordinates for Min(F)
+        
+        ub <- minn$X
+        vb <- minn$Y
+        C = (ub + 0.5)
+        
+        xj2 = {A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2) #Predicted x-coordinate
+        
+        yj2 = {D*C - A*{{A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B #Predicted y-coordinate
+        
+        xmin <- as.numeric(unlist(xj2))
+        ymin <- as.numeric(unlist(yj2))
+        
+        return(c(xmin,ymin))
+        
+        return(c(xmin,ymin))
       }
-      
-      # Arrange the result for Min(F) criterion
-      ts <- rbind(counterS, cs, ds, fstatt)
-      ts <- t(ts)
-      ts <- as.data.frame(ts)
-      colnames(ts) <- c("COUNTER", "X", "Y", "F")
-      minn <- ts %>% 
-        slice(which.min(F))
-      
-      
-      #Reverting from bookstein coordinates to original coordinates for Min(F)
-      D = (xl2 - xl1)^2 + (yl2 - yl1)^2
-      A = xl2 - xl1
-      B = yl2 - yl1
-      ub <- minn$X
-      vb <- minn$Y
-      C = (ub + 0.5)
-      
-      xj2 = {A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2) #Predicted x-coordinate
-      
-      yj2 = {D*C - A*{{A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B #Predicted y-coordinate
+      else if (imp_method == "mr") {
+        counter_mr <- 0
+        mr_data <- new_data
+        xt_mrs <- matrix(byrow = TRUE)
+        yt_mrs <- matrix(byrow = TRUE)
+        colnames(mr_data) <- c("v1", "v2")
+        
+        imputed_Data <- mice(mr_data, method = "norm",print = FALSE, remove.collinear = FALSE,threshold = 1.0,max.cor=1.0 ) 
+        xt_mr = imputed_Data$imp$v1[1,1]  ####Tahmin edilen x koordinatı 
+        yt_mr = imputed_Data$imp$v2[1,1]  ####Tahmin edilen y koordinatı 
+        xt_mrs[counter_mr] = xt_mr
+        yt_mrs[counter_mr] = yt_mr
+        
+        ub_mr <- xt_mr
+        vb_mr <- yt_mr
+        C_mr = (ub_mr + 0.5)
+        
+        yj2_mr = {D*C_mr - A*{{A*D*C_mr + xl1*(A^2 + B^2) - B*vb_mr*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B####Tahmin edilen y koordinatı
+        
+        
+        xj2_mr = {A*D*C_mr + xl1*(A^2 + B^2) - B*vb_mr*D}/(A^2 + B^2) ####Tahmin edilen x koordinatı
+        
+        #{C_mr*D+A*xl1-B*yj+B*yl1}/A
+        xj2_mr <- as.numeric(unlist(xj2_mr))
+        
+        yj2_mr <- as.numeric(unlist(yj2_mr))
+        return(c(xj2_mr,yj2_mr))
+      }
       
       xmin <- as.numeric(unlist(xj2))
       ymin <- as.numeric(unlist(yj2))
@@ -479,8 +519,9 @@ server <- function(input, output, session) {
       results_df_string <- capture.output(print(results_df))
       results_df_string <- paste( "#", results_df_string,sep = "")
       results_df_string <- paste(results_df_string, collapse = "\n")
+      dir.create(file.path(file_path, "withScale_output"), showWarnings = FALSE)
+      file_con <- file(file.path(file_path, "withScale_output", file), open = "w")
       
-      file_con <- file(paste0("output/", file), open = "w")
       
       write.csv(df_new, file = file_con, row.names = FALSE)
       writeLines(c(results_df_string), file_con)
