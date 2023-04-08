@@ -1,5 +1,5 @@
 runShinyApp <- function(){
-  required_packages <- c("rstudioapi", "shiny", "shinyWidgets", "shinyalert", "shinybusy", "shinyjs", 
+  required_packages <- c("rstudioapi", "shiny", "shinyWidgets", "shinyalert", "shinybusy", "shinyjs", "shinyFiles",
                        "tibble", "jpeg", "tiff", "png", "raster", "scales", "plotly", "shapes", "dplyr", "mice")
 
   # Load packages that are already installed
