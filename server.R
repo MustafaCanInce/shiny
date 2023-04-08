@@ -1254,7 +1254,7 @@ server <- function(input, output, session) {
     print(path2)
 
     reliability_IR <-function(number_of_dimension,number_of_subject,number_of_landmark,path1,path2){
-
+      print("sa")
       files1 <-  list.files(path1,pattern = '.csv')
       files2 <-  list.files(path2,pattern = '.csv')
 
@@ -1509,12 +1509,12 @@ server <- function(input, output, session) {
 
 
 
-      cat('Reliability Output:')
-      print(kable(output_df, format = "pipe"))
-      cat("\n")
-      cat("                      Variance of rel : ", var_rel)
-      cat("\n")
-      cat("                       G COEFFICIENT : ", G)
+      #cat('Reliability Output:')
+      #print(kable(output_df, format = "pipe"))
+      #cat("\n")
+      #cat("                      Variance of rel : ", var_rel)
+      #cat("\n")
+      #cat("                       G COEFFICIENT : ", G)
       #cat('\n r sum of square',rkt)
       #cat('\n l sum of square', lkt)
       #cat('\n s sum of square', skt)
@@ -1539,8 +1539,9 @@ server <- function(input, output, session) {
       #cat('\n')
       #cat(G);
       #cat('\n G COEFFICIENT')
-      return(G)
+      #return(G)
     }
+    reliability_IR(number_of_dimension,number_of_subject,number_of_landmark,path1,path2)
   })
 
 
