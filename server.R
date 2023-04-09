@@ -65,7 +65,7 @@ server <- function(input, output, session) {
 
 
   observeEvent(input$draw_plot_button, {
-    if(loaded){
+    if (loaded) {
       if (input$type_plo_radio_button == "Heatmap") {
         dataframe_name <- setNames(data.frame(matrix(ncol = 4, nrow = 0)),
                                    c("x", "y", "raters", "landmark"))
@@ -74,7 +74,7 @@ server <- function(input, output, session) {
           dataframe_i$raters <- rater_count
           dataframe_i$landmark <- seq_len(nrow(dataframe_i))
           dataframe_name <- rbind(dataframe_name, dataframe_i)
-          rater_count = rater_count+1
+          rater_count = rater_count + 1
         }
         euclidean_distances <- data.frame(landmarks_rater1 = c(), landmarks_rater2 = c(), distance = c())
         for (i in 1:nrow(dataframe_name)) {
@@ -100,7 +100,7 @@ server <- function(input, output, session) {
           dataframe_i$raters <- rater_count
           dataframe_i$landmark <- seq_len(nrow(dataframe_i))
           dataframe_name <- rbind(dataframe_name, dataframe_i)
-          rater_count = rater_count+1
+          rater_count = rater_count + 1
         }
 
         if (input$plot_settings_radio_button == "Rater") {
@@ -148,7 +148,7 @@ server <- function(input, output, session) {
         shinyjs::show(panel_name)
       } else {
         shinyjs::hide(panel_name)
-        if(panel_name == "plots_panel"){
+        if (panel_name == "plots_panel") {
           shinyjs::hide("plot_div")
           shinyjs::show("ui_div")
         }
@@ -194,7 +194,7 @@ server <- function(input, output, session) {
 
     else {
       # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
-      if(input$imp_radio_button == "minF Method"){
+      if (input$imp_radio_button == "minF Method") {
         imp_method <<- "minf"
       }
       else if (input$imp_radio_button == "Multiple Regression Method") {
@@ -229,14 +229,14 @@ server <- function(input, output, session) {
       na_number <- how.many.na.file(landmark_list)
       null_file_name <- vector(mode = 'list',length = as.numeric(na_number[1]))
       i <- 1
-      for (file in files){
+      for (file in files) {
         suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
         if(this.file.has.na(temp_data)){
           null_file_name[[i]] <- file
-          i <- i+1
+          i <- i + 1
         }
       }
-      if(na_number[1] == 1){
+      if (na_number[1] == 1) {
         single_vector <- vector(mode = 'list',length = 1)
         result <- impute.missing(file_path,landmark_list,l1,l2,imp_method)
         single_vector[[1]] <- c(result[1],result[2],c(result[3],result[4]))
@@ -245,17 +245,17 @@ server <- function(input, output, session) {
       else {
         null_files <- vector(mode = 'list',length = length(na_number[2]))
         l <- 1
-        for(i in 1:length(landmark_list)){
-          if (this.file.has.na(landmark_list[[i]])){
+        for (i in 1:length(landmark_list)) {
+          if (this.file.has.na(landmark_list[[i]])) {
             null_files[[l]] <- landmark_list[[i]]
-            l <- l+1
+            l <- l + 1
 
           }
         }
 
         i <- 1
 
-        for (elem in na_number[[2]]){
+        for (elem in na_number[[2]]) {
           landmark_list[[elem]] <- NULL
         }
 
@@ -264,8 +264,8 @@ server <- function(input, output, session) {
         #null_files_names <- vector(mode='list',length = length(null_files))
         indices <- vector(mode = 'list',length = length(null_files))
 
-        for (i in 1:length(null_files)){
-          landmark_list[[length(landmark_list) +1]] <- null_files[[length(null_files)]]
+        for (i in 1:length(null_files)) {
+          landmark_list[[length(landmark_list) + 1]] <- null_files[[length(null_files)]]
           null_files[[length(null_files)]] <- NULL
           result <- impute.missing(file_path,landmark_list,l1,l2,imp_method)
           indice <- as.numeric(result[1])
@@ -276,7 +276,7 @@ server <- function(input, output, session) {
           #result_list[[i]] <- c(x,y)
           #null_files_names[[i]] <- result[2]
           #indices[[i]] <- indice
-          result_list[[i]] <-c(indice,null_file_name[[i]],c(x,y))
+          result_list[[i]] <- c(indice,null_file_name[[i]],c(x,y))
           remove(result)
         }
         return(result_list)
@@ -302,8 +302,8 @@ server <- function(input, output, session) {
       #rm(t_data)
       #data <- data.frame()
 
-      for (elem in lm_list){
-        if (nrow(elem) != nr){
+      for (elem in lm_list) {
+        if (nrow(elem) != nr) {
           shinyalert("Error!", "Please check the length of the csv's.", type = "error")
         }
       }
@@ -343,11 +343,11 @@ server <- function(input, output, session) {
 
       i <-  1
       vector_data <- c()
-      for (elem in lm_list){
-        if(i != nii){
+      for (elem in lm_list) {
+        if (i != nii) {
           vector_data <- c(vector_data,unlist(elem,use.names = FALSE))
         }
-        i <- i+1
+        i <- i + 1
       }
 
 
@@ -371,7 +371,7 @@ server <- function(input, output, session) {
       #Create bookstein coordinate from the missing data
       my.dat.book <- bookstein2d(st_data)
       my.dat.book.cor <- my.dat.book$bshpv
-      em_data<-my.dat.book.cor
+      em_data <- my.dat.book.cor
 
       #Reformat the dataset in order to applying the F statistic.
       i = 1
@@ -509,7 +509,7 @@ server <- function(input, output, session) {
         yt_mrs <- matrix(byrow = TRUE)
         colnames(mr_data) <- c("v1", "v2")
 
-        imputed_Data <- mice(seed= 100, mr_data, method = "norm",print = FALSE, remove.collinear = FALSE,threshold = 1.0,max.cor=1.0 )
+        imputed_Data <- mice(seed = 100, mr_data, method = "norm",print = FALSE, remove.collinear = FALSE,threshold = 1.0,max.cor = 1.0 )
         xt_mr = imputed_Data$imp$v1[1,1]  ####Tahmin edilen x koordinatı
         yt_mr = imputed_Data$imp$v2[1,1]  ####Tahmin edilen y koordinatı
         xt_mrs[counter_mr] = xt_mr
@@ -531,84 +531,84 @@ server <- function(input, output, session) {
         return(c(nli,null_file_name,xj2_mr,yj2_mr))
       }
 
-      else if(imp_method == "em"){
+      else if (imp_method == "em") {
 
         i = 1
-        indices_list_1<- list()
+        indices_list_1 <- list()
         indices_list_2 <- list()
         indices_list_2 <- append(indices_list_2,1)
-        while(i <= nr -2){
+        while (i <= nr - 2) {
           indice1 = nf*i
-          indice2 = indice1+1
+          indice2 = indice1 + 1
           indices_list_1 <- append(indices_list_1,indice1)
           indices_list_2 <- append(indices_list_2,indice2)
-          i <- i+1
+          i <- i + 1
         }
         indices_list_2[length(indices_list_2)] <- NULL
 
-        k=nr #9
-        j=1
+        k = nr #9
+        j = 1
         new_x_list <- list()
-        while (j <=nf) { #1--5
-          i=nli #7
-          while (i <=k) { # 7--9
-            aa<-em_data[i,1,j]
+        while (j <= nf) { #1--5
+          i = nli #7
+          while (i <= k) { # 7--9
+            aa <- em_data[i,1,j]
             new_x_list <- append(new_x_list,aa)
 
-            i=i+1
+            i = i + 1
           }
-          j=j+1
+          j = j + 1
         }
 
-        j=1
-        new_y_list<- list()
-        while (j <=nf) {
-          i=nli
+        j = 1
+        new_y_list <- list()
+        while (j <= nf) {
+          i = nli
           while (i <= k) {
-            bb<-em_data[i,2,j]
+            bb <- em_data[i,2,j]
             new_y_list <- append(new_y_list,bb)
-            i=i+1
+            i = i + 1
           }
-          j=j+1
+          j = j + 1
         }
         new_x_list <- as.matrix(as.numeric(new_x_list))
         new_y_list <- as.matrix(as.numeric(new_y_list))
         i <- 1
         start <- as.numeric(indices_list_2[i])
         end <- as.numeric(indices_list_1[i])
-        new_em <- data.frame(matrix(nrow = (end -start +1)))
-        while(i <= length(indices_list_1)){
+        new_em <- data.frame(matrix(nrow = (end - start + 1)))
+        while (i <= length(indices_list_1)) {
           start <- as.numeric(indices_list_2[i])
           end <- as.numeric(indices_list_1[i])
           temp_em <- cbind(new_x_list[start:end,],new_y_list[start:end,])
           new_em <- cbind(new_em,temp_em)
-          i <- i+1
+          i <- i + 1
         }
         new_em <- new_em[,-1]
         #yeni_em<-cbind(new_x_list[1:n1,], new_y_list[1:n1,],new_x_list[n2:n3,],new_y_list[n2:n3,], new_x_list[n4:n5,], new_y_list[n4:n5,], new_x_list[n6:n7,], new_y_list[n6:n7,])
-        result_em<-suppressWarnings(amelia(new_em, m = 1,p2s = 0))
+        result_em <- suppressWarnings(amelia(new_em, m = 1,p2s = 0))
         deneme <- result_em$message
-        xt_ems<-matrix(byrow=TRUE)
-        yt_ems<-matrix(byrow=TRUE)
-        xt_em<-result_em$imputations$imp1[1,1]
-        yt_em<-result_em$imputations$imp1[1,2]
-        ub<- xt_em
-        vb<- yt_em
-        C= (ub+0.5)
-        yj2_em={(A^2+B^2)*yl1+B*C*D+vb*A*D}/(A^2+B^2) ####Tahmin edilen y koordinatı
+        xt_ems <- matrix(byrow = TRUE)
+        yt_ems <- matrix(byrow = TRUE)
+        xt_em <- result_em$imputations$imp1[1,1]
+        yt_em <- result_em$imputations$imp1[1,2]
+        ub <- xt_em
+        vb <- yt_em
+        C = (ub + 0.5)
+        yj2_em = {(A^2 + B^2)*yl1 + B*C*D + vb*A*D}/(A^2 + B^2) ####Tahmin edilen y koordinatı
 
         xj2_em = {A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)
-        xj2_em<-as.numeric(unlist(xj2_em))
-        yj2_em<-as.numeric(unlist(yj2_em))
+        xj2_em <- as.numeric(unlist(xj2_em))
+        yj2_em <- as.numeric(unlist(yj2_em))
 
-        if(is.null(xt_em) || is.null(yt_em)){
+        if (is.null(xt_em) || is.null(yt_em)) {
           return(c(result_em[["message"]]))
         }else{
-          return (c(nli, null_file_name, xj2_em,yj2_em))}
+          return(c(nli, null_file_name, xj2_em,yj2_em))}
       }
     }
 
-    how.many.na.file<- function(df_list){
+    how.many.na.file <- function(df_list){
       null_number <- 0
       indice_list <- list()
       i <- 1
@@ -620,16 +620,16 @@ server <- function(input, output, session) {
             break
           }
         }
-        i <- i +1
+        i <- i + 1
       }
-      return (c(null_number,lapply(list(as.numeric(indice_list)),sort,decreasing=TRUE)))
+      return(c(null_number,lapply(list(as.numeric(indice_list)),sort,decreasing = TRUE)))
     }
 
     turn.to.df.list <- function(file_path){
       files <-  list.files(file_path , pattern = '.csv')
       df_list <- vector(mode = 'list',length = length(files))
       i <- 1
-      for (file in files){
+      for (file in files) {
         suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
         df_list[[i]] <- temp_data
         i <- i + 1
@@ -639,8 +639,8 @@ server <- function(input, output, session) {
     }
 
     this.file.has.na <- function(data){
-      for (is_null in is.na(data)){
-        if (is_null==TRUE){
+      for (is_null in is.na(data)) {
+        if (is_null == TRUE) {
           return(TRUE)
         }
       }
@@ -665,8 +665,8 @@ server <- function(input, output, session) {
       #rm(t_data)
       #data <- data.frame()
 
-      for (elem in lm_list){
-        if (nrow(elem) != nr){
+      for (elem in lm_list) {
+        if (nrow(elem) != nr) {
           shinyalert("Error!", "Please check the length of the csv's.", type = "error")
         }
       }
@@ -706,11 +706,11 @@ server <- function(input, output, session) {
 
       i <-  1
       vector_data <- c()
-      for (elem in lm_list){
-        if(i != nii){
+      for (elem in lm_list) {
+        if (i != nii) {
           vector_data <- c(vector_data,unlist(elem,use.names = FALSE))
         }
-        i <- i+1
+        i <- i + 1
       }
 
 
@@ -734,7 +734,7 @@ server <- function(input, output, session) {
       #Create bookstein coordinate from the missing data
       my.dat.book <- bookstein2d(st_data)
       my.dat.book.cor <- my.dat.book$bshpv
-      em_data<-my.dat.book.cor
+      em_data <- my.dat.book.cor
 
       #Reformat the dataset in order to applying the F statistic.
       i = 1
@@ -872,7 +872,7 @@ server <- function(input, output, session) {
         yt_mrs <- matrix(byrow = TRUE)
         colnames(mr_data) <- c("v1", "v2")
 
-        imputed_Data <- mice(seed= 100, mr_data, method = "norm",print = FALSE, remove.collinear = FALSE,threshold = 1.0,max.cor=1.0 )
+        imputed_Data <- mice(seed = 100, mr_data, method = "norm",print = FALSE, remove.collinear = FALSE,threshold = 1.0,max.cor = 1.0 )
         xt_mr = imputed_Data$imp$v1[1,1]  ####Tahmin edilen x koordinatı
         yt_mr = imputed_Data$imp$v2[1,1]  ####Tahmin edilen y koordinatı
         xt_mrs[counter_mr] = xt_mr
@@ -894,84 +894,84 @@ server <- function(input, output, session) {
         return(c(nli,null_file_name,xj2_mr,yj2_mr))
       }
 
-      else if(imp_method == "em"){
+      else if (imp_method == "em") {
 
         i = 1
-        indices_list_1<- list()
+        indices_list_1 <- list()
         indices_list_2 <- list()
         indices_list_2 <- append(indices_list_2,1)
-        while(i <= nr -2){
+        while (i <= nr - 2) {
           indice1 = nf*i
-          indice2 = indice1+1
+          indice2 = indice1 + 1
           indices_list_1 <- append(indices_list_1,indice1)
           indices_list_2 <- append(indices_list_2,indice2)
-          i <- i+1
+          i <- i + 1
         }
         indices_list_2[length(indices_list_2)] <- NULL
 
-        k=nr #9
-        j=1
+        k = nr #9
+        j = 1
         new_x_list <- list()
-        while (j <=nf) { #1--5
-          i=nli #7
-          while (i <=k) { # 7--9
-            aa<-em_data[i,1,j]
+        while (j <= nf) { #1--5
+          i = nli #7
+          while (i <= k) { # 7--9
+            aa <- em_data[i,1,j]
             new_x_list <- append(new_x_list,aa)
 
-            i=i+1
+            i = i + 1
           }
-          j=j+1
+          j = j + 1
         }
 
-        j=1
-        new_y_list<- list()
-        while (j <=nf) {
-          i=nli
+        j = 1
+        new_y_list <- list()
+        while (j <= nf) {
+          i = nli
           while (i <= k) {
-            bb<-em_data[i,2,j]
+            bb <- em_data[i,2,j]
             new_y_list <- append(new_y_list,bb)
-            i=i+1
+            i = i + 1
           }
-          j=j+1
+          j = j + 1
         }
         new_x_list <- as.matrix(as.numeric(new_x_list))
         new_y_list <- as.matrix(as.numeric(new_y_list))
         i <- 1
         start <- as.numeric(indices_list_2[i])
         end <- as.numeric(indices_list_1[i])
-        new_em <- data.frame(matrix(nrow = (end -start +1)))
-        while(i <= length(indices_list_1)){
+        new_em <- data.frame(matrix(nrow = (end - start + 1)))
+        while (i <= length(indices_list_1)) {
           start <- as.numeric(indices_list_2[i])
           end <- as.numeric(indices_list_1[i])
           temp_em <- cbind(new_x_list[start:end,],new_y_list[start:end,])
           new_em <- cbind(new_em,temp_em)
-          i <- i+1
+          i <- i + 1
         }
         new_em <- new_em[,-1]
         #yeni_em<-cbind(new_x_list[1:n1,], new_y_list[1:n1,],new_x_list[n2:n3,],new_y_list[n2:n3,], new_x_list[n4:n5,], new_y_list[n4:n5,], new_x_list[n6:n7,], new_y_list[n6:n7,])
-        result_em<-suppressWarnings(amelia(new_em, m = 1,p2s = 0))
+        result_em <- suppressWarnings(amelia(new_em, m = 1,p2s = 0))
         deneme <- result_em$message
-        xt_ems<-matrix(byrow=TRUE)
-        yt_ems<-matrix(byrow=TRUE)
-        xt_em<-result_em$imputations$imp1[1,1]
-        yt_em<-result_em$imputations$imp1[1,2]
-        ub<- xt_em
-        vb<- yt_em
-        C= (ub+0.5)
-        yj2_em={(A^2+B^2)*yl1+B*C*D+vb*A*D}/(A^2+B^2) ####Tahmin edilen y koordinatı
+        xt_ems <- matrix(byrow = TRUE)
+        yt_ems <- matrix(byrow = TRUE)
+        xt_em <- result_em$imputations$imp1[1,1]
+        yt_em <- result_em$imputations$imp1[1,2]
+        ub <- xt_em
+        vb <- yt_em
+        C = (ub + 0.5)
+        yj2_em = {(A^2 + B^2)*yl1 + B*C*D + vb*A*D}/(A^2 + B^2) ####Tahmin edilen y koordinatı
 
         xj2_em = {A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)
-        xj2_em<-as.numeric(unlist(xj2_em))
-        yj2_em<-as.numeric(unlist(yj2_em))
+        xj2_em <- as.numeric(unlist(xj2_em))
+        yj2_em <- as.numeric(unlist(yj2_em))
 
-        if(is.null(xt_em) || is.null(yt_em)){
+        if (is.null(xt_em) || is.null(yt_em)) {
           return(c(result_em[["message"]]))
         }else{
-          return (c(nli, null_file_name, xj2_em,yj2_em))}
+          return(c(nli, null_file_name, xj2_em,yj2_em))}
       }
     }
 
-    how.many.na.file<- function(df_list){
+    how.many.na.file <- function(df_list){
       null_number <- 0
       indice_list <- list()
       i <- 1
@@ -983,16 +983,16 @@ server <- function(input, output, session) {
             break
           }
         }
-        i <- i +1
+        i <- i + 1
       }
-      return (c(null_number,lapply(list(as.numeric(indice_list)),sort,decreasing=TRUE)))
+      return(c(null_number,lapply(list(as.numeric(indice_list)),sort,decreasing = TRUE)))
     }
 
     turn.to.df.list <- function(file_path){
       files <-  list.files(file_path , pattern = '.csv')
       df_list <- vector(mode = 'list',length = length(files))
       i <- 1
-      for (file in files){
+      for (file in files) {
         suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
         df_list[[i]] <- temp_data
         i <- i + 1
@@ -1002,8 +1002,8 @@ server <- function(input, output, session) {
     }
 
     this.file.has.na <- function(data){
-      for (is_null in is.na(data)){
-        if (is_null==TRUE){
+      for (is_null in is.na(data)) {
+        if (is_null == TRUE) {
           return(TRUE)
         }
       }
@@ -1012,29 +1012,25 @@ server <- function(input, output, session) {
     remove_modal_progress()
     result <- impute.multiple.missing(file_path,l1,l2,imp_method = imp_method)
     if (!is.null(result)) {
+      file_path <- input$imp_csv_input
       files <- list.files(file_path, pattern = '.csv')
-      # NA içeren dosyanın adını bulmak için döngü
-      i <- 1
-      for (i in length(result)) {
-        print(length(result))
 
-        for(file in files){
-          if(result[[i]][2] == file){
+      print(files)
 
-          }
+      for (i in seq_along(result)) {
+        print(result[[i]][2])
+        dosya_adi <- result[[i]][2]
+        if (dosya_adi %in% files) {
 
-          print(file)
+          yeni_veri <- read.csv(file.path(getwd(), "output", dosya_adi))
+          na_index <- result[[i]][1]
+          yeni_veri[na_index, ] <- result[[i]][3]
+          yeni_veri <- rbind(yeni_veri, paste("#","Index number of NA value: ", result[[i]][1]))
+          print(yeni_veri)
+          dir.create(file.path(my_file_path[1], "imputed"), showWarnings = FALSE)
+          write.csv(yeni_veri, file = file.path(my_file_path[1], "imputed", paste0("imputed_", imp_method, "_", dosya_adi)), row.names = FALSE)
         }
       }
-      print(result)
-      #data <- read.csv(file.path(file_path, files),comment.char = "#")
-      #data[is.na(data$x), "x"] <- result[[1]]
-      #data[is.na(data$y), "y"] <- result[[2]]
-#
-      #dir.create(file.path(my_file_path[1], "imputed"), showWarnings = FALSE)
-      #write.csv(data, file = file.path(my_file_path[1], "imputed", paste0("imputed_", imp_method, "_", files[1])), row.names = FALSE)
-#
-      #lapply(list.files(path = tempdir(), pattern = "file"), close)
 
       shinyalert("Success!", paste("Predicted landmark are saved in the file located at", my_file_path[1], "folder."), type = "success")
 
@@ -1150,7 +1146,7 @@ server <- function(input, output, session) {
       shinyalert("Success!", paste("Csv files have been saved to", my_file_path[1], "folder."), type = "success")
 
     }
-    else if (input$done_radio_button == "Save unscaled coordinates as csv"){#save csv files without scale #save csv files at scale
+    else if (input$done_radio_button == "Save unscaled coordinates as csv") {
 
       x <- xy_new$x[xy_new$x != 0]
       y <- xy_new$y[xy_new$y != 0]
@@ -1251,21 +1247,19 @@ server <- function(input, output, session) {
     number_of_landmark <- input$rel_landmark_input
     path1 <- input$rel_path1_input
     path2 <- input$rel_path2_input
-    print(path2)
 
-    reliability_IR <-function(number_of_dimension,number_of_subject,number_of_landmark,path1,path2){
-      print("sa")
+    reliability_IR <- function(number_of_dimension,number_of_subject,number_of_landmark,path1,path2) {
       files1 <-  list.files(path1,pattern = '.csv')
       files2 <-  list.files(path2,pattern = '.csv')
 
-      if(length(files1) != length(files2)){
+      if (length(files1) != length(files2)) {
         shinyalert("Error!", "Please provide equal number of subject", type = "error")
       }
 
       rater_1_landmarks <- setNames(data.frame(matrix(ncol = 2, nrow = 0)),
                                     c("x", "y"))
 
-      for (file in files1){
+      for (file in files1) {
         suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path1,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
         rater_1_landmarks <- rbind(rater_1_landmarks,temp_data)
       }
@@ -1279,7 +1273,7 @@ server <- function(input, output, session) {
                                     c("x", "y"))
 
 
-      for (file in files2){
+      for (file in files2) {
         suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path2,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
         rater_2_landmarks <- rbind(rater_2_landmarks,temp_data)
       }
@@ -1288,200 +1282,206 @@ server <- function(input, output, session) {
       #  rater_2_landmarks <- rbind(rater_2_landmarks, dataframe_i)
       #}
 
-      a=0; rr=0; ka=0; kb=0; sn1=1; tlsr=0; tlr2=0; tr2=0; tr1a=0; tr1b=0;x=0
-      tl2=0; ts2=0; tlsb2=0; td=0; tlre=0; tsre=0; sn2=0; d=0; trs2=0; srkt=0;i=0;
-      C = choose(number_of_landmark,2); sn2=(number_of_subject*(C)); s=C*number_of_subject;
+      a = 0; rr = 0; ka = 0; kb = 0; sn1 = 1; tlsr = 0; tlr2 = 0; tr2 = 0; tr1a = 0; tr1b = 0;x = 0
+      tl2 = 0; ts2 = 0; tlsb2 = 0; td = 0; tlre = 0; tsre = 0; sn2 = 0; d = 0; trs2 = 0; srkt = 0;i = 0;
+      C = choose(number_of_landmark,2); sn2 = (number_of_subject*(C)); s = C*number_of_subject;
 
-      R<-matrix(nrow=2*number_of_subject*C,ncol=4)
+      R <- matrix(nrow = 2*number_of_subject*C,ncol = 4)
 
-      P<-matrix(nrow=number_of_subject*C,ncol=4)
-      V<-matrix(nrow=number_of_subject*C,ncol=4)
-      for (a in 1:2){
-        for (b in 1:number_of_subject){
-          for (c in 1:C){
-            d=d+1; R[d,1]=a; R[d,2]=b; R[d,3]=c;
+      P <- matrix(nrow = number_of_subject*C,ncol = 4)
+      V <- matrix(nrow = number_of_subject*C,ncol = 4)
+      for (a in 1:2) {
+        for (b in 1:number_of_subject) {
+          for (c in 1:C) {
+            d = d + 1; R[d,1] = a; R[d,2] = b; R[d,3] = c;
           }
         }
       }
 
 
-      if (number_of_dimension < 3){
-        for(p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)){
-          t=number_of_landmark+p; m=t-number_of_landmark;
-          for (j in m:(t-1)){
-            for (i in m:(t-1)){
-              if ((j<i) & (i!=j)){
-                acia1= sqrt(((rater_1_landmarks[j,1]-rater_1_landmarks[i,1])^2)+((rater_1_landmarks[j,2]-rater_1_landmarks[i,2])^2));
-                R[sn1,4]= acia1; sn2=sn2+1;
-                acib1=sqrt(((rater_2_landmarks[j,1]-rater_2_landmarks[i,1])^2)+((rater_2_landmarks[j,2]-rater_2_landmarks[i,2])^2));
-                R[sn2,4]= acib1;
-                tlsr= tlsr + (acia1^2) + (acib1^2);
-                tr1a= tr1a + acia1; tr1b = tr1b + acib1;
-                td= td + acia1 + acib1;
-                sn1= sn1+1;
+      if (number_of_dimension < 3) {
+        for (p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)) {
+          t = number_of_landmark + p; m = t - number_of_landmark;
+          for (j in m:(t - 1)) {
+            for (i in m:(t - 1)) {
+              if ((j < i) & (i != j)) {
+                acia1 = sqrt(((rater_1_landmarks[j,1] - rater_1_landmarks[i,1])^2) + ((rater_1_landmarks[j,2] - rater_1_landmarks[i,2])^2));
+                R[sn1,4] = acia1; sn2 = sn2 + 1;
+                acib1 = sqrt(((rater_2_landmarks[j,1] - rater_2_landmarks[i,1])^2) + ((rater_2_landmarks[j,2] - rater_2_landmarks[i,2])^2));
+                R[sn2,4] = acib1;
+                tlsr = tlsr + (acia1^2) + (acib1^2);
+                tr1a = tr1a + acia1; tr1b = tr1b + acib1;
+                td = td + acia1 + acib1;
+                sn1 = sn1 + 1;
               }
             }
           }
         }
       }
-      if (number_of_dimension>2){
-        for(p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)){
-          t=number_of_landmark+p; m=t-number_of_landmark;
-          for (j in m:(t-1)){
-            for (i in m:(t-1)){
-              if ((j<i) & (i!=j)){
-                acia1=sqrt(((rater_1_landmarks[j,1] - rater_1_landmarks[i,1])^2) + ((rater_1_landmarks[j,2] - rater_1_landmarks[i,2])^2) + ((rater_1_landmarks[j,3] - rater_1_landmarks[i,3])^2));
-                R[sn1,4]=as.integer(acia1); sn2=sn2+1;
-                acib1 = sqrt(((rater_2_landmarks[j,1]- rater_2_landmarks[i,1])^2) + ((rater_2_landmarks[j,2]-rater_2_landmarks[i,2])^2)+((rater_2_landmarks[j,3]-rater_2_landmarks[i,3])^2));
-                R[sn2,4] =as.integer(acib1);
-                tlsr= tlsr + (acia1^2) + (acib1^2);
-                tr1a= tr1a+ acia1; tr1b=tr1b + acib1;
-                td= td + acia1 + acib1;
-                sn1= sn1+1;
+      if (number_of_dimension > 2) {
+        for (p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)) {
+          t = number_of_landmark + p; m = t - number_of_landmark;
+          for (j in m:(t - 1)) {
+            for (i in m:(t - 1)) {
+              if ((j < i) & (i != j)) {
+                acia1 = sqrt(((rater_1_landmarks[j,1] - rater_1_landmarks[i,1])^2) + ((rater_1_landmarks[j,2] - rater_1_landmarks[i,2])^2) + ((rater_1_landmarks[j,3] - rater_1_landmarks[i,3])^2));
+                R[sn1,4] = as.integer(acia1); sn2 = sn2 + 1;
+                acib1 = sqrt(((rater_2_landmarks[j,1] - rater_2_landmarks[i,1])^2) + ((rater_2_landmarks[j,2] - rater_2_landmarks[i,2])^2) + ((rater_2_landmarks[j,3] - rater_2_landmarks[i,3])^2));
+                R[sn2,4] = as.integer(acib1);
+                tlsr = tlsr + (acia1^2) + (acib1^2);
+                tr1a = tr1a + acia1; tr1b = tr1b + acib1;
+                td = td + acia1 + acib1;
+                sn1 = sn1 + 1;
               }
             }
           }
         }
       }
 
-      df=(td^2)/(2*C*number_of_subject)
-      tr2=(tr1a^2)+(tr1b^2); rkt=(tr2/(C*number_of_subject))-df; rko=((tr2/(C*number_of_subject))-df)/1; ms_r=rko;
+      df = (td^2)/(2*C*number_of_subject)
+      tr2 = (tr1a^2) + (tr1b^2); rkt = (tr2/(C*number_of_subject)) - df; rko = ((tr2/(C*number_of_subject)) - df)/1; ms_r = rko;
 
-      for (i in 1:s){
-        for (j in 1:4){
-          P[i,j]= R[i,j];
+      for (i in 1:s) {
+        for (j in 1:4) {
+          P[i,j] = R[i,j];
         }
       }
 
-      v=0
-      xyz=s+1
-      for (i in xyz:(2*s)){
-        v=v+1;
-        for (j in 1:4){
-          V[v,j]=R[i,j];
+      v = 0
+      xyz = s + 1
+      for (i in xyz:(2*s)) {
+        v = v + 1;
+        for (j in 1:4) {
+          V[v,j] = R[i,j];
         }
       }
 
-      for (l in 1:C){
-        tl1=0;
-        for (i in 1:s){
-          if (l>P[i,3]-1 & (l <P[i,3]+1)){
-            tl1=tl1+P[i,4];}
-          if (l>(V[i,3]-1) & (l<V[i,3]+1)){
-            tl1=tl1+V[i,4];}
+      for (l in 1:C) {
+        tl1 = 0;
+        for (i in 1:s) {
+          if (l > P[i,3] - 1 & (l < P[i,3] + 1)) {
+            tl1 = tl1 + P[i,4];}
+          if (l > (V[i,3] - 1) & (l < V[i,3] + 1)) {
+            tl1 = tl1 + V[i,4];}
         }
-        tl2=tl2+(tl1^2);
+        tl2 = tl2 + (tl1^2);
       }
 
-      lkt=(tl2/(number_of_subject*2))-df
+      lkt = (tl2/(number_of_subject*2)) - df
 
-      for (sb in 1:number_of_subject){
-        ts1=0;
-        for (i in 1:s){
-          if ((sb>(P[i,2]-1) & sb<(P[i,2]+1))){
-            ts1=ts1+P[i,4];}
-          if ((sb>(V[i,2]-1) & sb<(V[i,2]+1))){
-            ts1=ts1+V[i,4];}
+      for (sb in 1:number_of_subject) {
+        ts1 = 0;
+        for (i in 1:s) {
+          if ((sb > (P[i,2] - 1) & sb < (P[i,2] + 1))) {
+            ts1 = ts1 + P[i,4];}
+          if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
+            ts1 = ts1 + V[i,4];}
         }
-        ts2=ts2+(ts1^2);
+        ts2 = ts2 + (ts1^2);
       }
 
-      skt=(ts2/(C*2))-df;
+      skt = (ts2/(C*2)) - df;
 
-      for (l in 1:C){
-        for (sb in 1:number_of_subject){
-          tls1=0;
-          for (i in 1:s){
-            if ((l>(P[i,3]-1)) & (l<(P[i,3]+1))){
-              if ((sb>(P[i,2]-1)) & (sb<(P[i,2]+1))){
-                tls1=tls1+P[i,4];}
+      for (l in 1:C) {
+        for (sb in 1:number_of_subject) {
+          tls1 = 0;
+          for (i in 1:s) {
+            if ((l > (P[i,3] - 1)) & (l < (P[i,3] + 1))) {
+              if ((sb > (P[i,2] - 1)) & (sb < (P[i,2] + 1))) {
+                tls1 = tls1 + P[i,4];}
             }
 
-            if ((l>(V[i,3]-1) & l<(V[i,3]+1))){
-              if ((sb>(V[i,2]-1) & sb<(V[i,2]+1))){
-                tls1=tls1+V[i,4];}
-            }
-          }
-          tlsb2=tlsb2+(tls1^2);
-        }
-      }
-
-      lskt=(tlsb2/2)-df-lkt-skt;
-
-      for (l in 1:C){
-        tlrp=0;
-        tlrv=0;
-        for (i in 1:s){
-          if ((l>(P[i,3]-1) & l<(P[i,3]+1))){
-            tlrp=tlrp+P[i,4]; tlrv=tlrv+V[i,4];}
-        }
-        tlre=tlre+(tlrp^2+tlrv^2);
-      }
-
-      lrkt=(tlre/number_of_subject)-df-lkt-rkt;
-
-      for (r in 1:2){
-        for (sb in 1:number_of_subject){
-          trsp=0; trsv=0;
-          for (i in 1:s){
-            if ((r>(P[i,1]-1) & r<(P[i,1]+1))){
-              if ((sb>(P[i,2]-1) & sb<(P[i,2]+1))){
-                trsp=trsp+P[i,4];
-              }
-            }
-            if ((r>(V[i,1]-1) & r<(V[i,1]+1))){
-              if ((sb>(V[i,2]-1) & sb<(V[i,2]+1))){
-                trsv=trsv+V[i,4];
-              }
+            if ((l > (V[i,3] - 1) & l < (V[i,3] + 1))) {
+              if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
+                tls1 = tls1 + V[i,4];}
             }
           }
-          trs2=trs2+(trsp^2)+(trsv^2);
+          tlsb2 = tlsb2 + (tls1^2);
         }
       }
 
-      srkt=(trs2/C)-df-rkt-skt;
+      lskt = (tlsb2/2) - df - lkt - skt;
 
-      tlsrkt=tlsr-df-lkt-rkt-skt-lrkt-lskt-srkt
+      for (l in 1:C) {
+        tlrp = 0;
+        tlrv = 0;
+        for (i in 1:s) {
+          if ((l > (P[i,3] - 1) & l < (P[i,3] + 1))) {
+            tlrp = tlrp + P[i,4]; tlrv = tlrv + V[i,4];}
+        }
+        tlre = tlre + (tlrp^2 + tlrv^2);
+      }
 
-      ms_lrs=tlsrkt/((number_of_subject-1)*(C-1));
-      ms_lr=lrkt/(C-1);
-      ms_ls=lskt/((number_of_subject-1)*(C-1));
-      ms_rs=srkt/(number_of_subject-1);
-      ms_l=lkt/(C-1);
-      ms_s=skt/(number_of_subject-1);
+      lrkt = (tlre/number_of_subject) - df - lkt - rkt;
 
-      var_lrs=ms_lrs;
-      var_lr=(ms_lr-ms_lrs)/number_of_subject;
-      var_ls=(ms_ls-ms_lrs)/2;
-      var_rs=(ms_rs-ms_lrs)/C;
-      var_l=(ms_l-ms_lr-ms_ls+ms_lrs)/(2*number_of_subject);
-      var_r=(ms_r-ms_lr-ms_rs+ms_lrs)/(C*number_of_subject);
-      var_s=(ms_s-ms_ls-ms_rs+ms_lrs)/(2*C);
+      for (r in 1:2) {
+        for (sb in 1:number_of_subject) {
+          trsp = 0; trsv = 0;
+          for (i in 1:s) {
+            if ((r > (P[i,1] - 1) & r < (P[i,1] + 1))) {
+              if ((sb > (P[i,2] - 1) & sb < (P[i,2] + 1))) {
+                trsp = trsp + P[i,4];
+              }
+            }
+            if ((r > (V[i,1] - 1) & r < (V[i,1] + 1))) {
+              if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
+                trsv = trsv + V[i,4];
+              }
+            }
+          }
+          trs2 = trs2 + (trsp^2) + (trsv^2);
+        }
+      }
 
-      if (var_lrs<0){
-        var_lrs=0;}
+      srkt = (trs2/C) - df - rkt - skt;
 
-      if (var_lr<0){
-        var_lr=0;}
+      tlsrkt = tlsr - df - lkt - rkt - skt - lrkt - lskt - srkt
 
-      if (var_ls<0){
-        var_ls=0;}
+      ms_lrs = tlsrkt/((number_of_subject - 1)*(C - 1));
+      ms_lr = lrkt/(C - 1);
+      ms_ls = lskt/((number_of_subject - 1)*(C - 1));
+      ms_rs = srkt/(number_of_subject - 1);
+      ms_l = lkt/(C - 1);
+      ms_s = skt/(number_of_subject - 1);
 
-      if (var_rs<0){
-        var_rs=0;}
+      var_lrs = ms_lrs;
+      var_lr = (ms_lr - ms_lrs)/number_of_subject;
+      var_ls = (ms_ls - ms_lrs)/2;
+      var_rs = (ms_rs - ms_lrs)/C;
+      var_l = (ms_l - ms_lr - ms_ls + ms_lrs)/(2*number_of_subject);
+      var_r = (ms_r - ms_lr - ms_rs + ms_lrs)/(C*number_of_subject);
+      var_s = (ms_s - ms_ls - ms_rs + ms_lrs)/(2*C);
 
-      if (var_l<0){
-        var_l=0;}
+      if (var_lrs < 0) {
+        var_lrs = 0;
+      }
 
-      if (var_r<0){
-        var_r=0;}
+      if (var_lr < 0) {
+        var_lr = 0;
+      }
 
-      if (var_s<0){
-        var_s=0;}
+      if (var_ls < 0) {
+        var_ls = 0;
+      }
 
-      var_rel=(var_lr/2)+(var_ls/number_of_subject)+(var_lrs/(2*number_of_subject));
+      if (var_rs < 0) {
+        var_rs = 0;
+      }
 
-      G=var_l/(var_l+var_rel);
+      if (var_l < 0) {
+        var_l = 0;
+      }
+
+      if (var_r < 0) {
+        var_r = 0;
+      }
+      if (var_s < 0) {
+        var_s = 0;
+      }
+
+      var_rel = (var_lr/2) + (var_ls/number_of_subject) + (var_lrs/(2*number_of_subject));
+
+      G = var_l/(var_l + var_rel);
       R_df <- data.frame(R)
       colnames(R_df) <- c("Rater","Subject","Landmark","Euclidean Distances")
       write.csv(R_df,"euclidean_distances_between_the_landmark_pairs.csv",row.names = FALSE)
@@ -1502,9 +1502,9 @@ server <- function(input, output, session) {
 
 
       #write("\n",file="estimated_variance_components.csv",append = TRUE)
-      write(paste("#Variance of rel : ", var_rel),file="estimated_variance_components.csv",append = TRUE)
+      write(paste("#Variance of rel : ", var_rel),file = "estimated_variance_components.csv",append = TRUE)
       #write(cat("\n"),file="estimated_variance_components.csv",append = TRUE)
-      write(paste( "#G COEFFICIENT : ", G),file="estimated_variance_components.csv",append = TRUE)
+      write(paste( "#G COEFFICIENT : ", G),file = "estimated_variance_components.csv",append = TRUE)
       #writeLines(c(cat("\n"),paste("#Variance of rel : ", var_rel),cat("\n"),paste( "G COEFFICIENT : ", G)), fileConn)
 
 

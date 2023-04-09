@@ -95,6 +95,7 @@ ui <- fluidPage(
                "L1 and L2 are anatomical reference landmarks. Please provide them.",
                numericInput(inputId = "l1_input", label = "L1:", value = "1"),
                numericInput(inputId = "l2_input", label = "L2:", value = "2"),
+               textInput(inputId = "imp_csv_input", label = "Csv file input file path:", value = "", placeholder = "Input csv folder path"),
                radioButtons(inputId = "imp_radio_button" , label = "Imputation Method:", choices = c("minF Method", "Multiple Regression Method", "Expected Maximization Method")),
                div(style = "display:flex; flex-direction: row; justify-content: center;",
                    actionButton(inputId = "calculate_imp", label = "Submit"),
@@ -238,8 +239,8 @@ ui <- fluidPage(
                numericInput(inputId = "rel_dimension_input", label = "Number of Dimension:", value = "1"),
                numericInput(inputId = "rel_subject_input", label = "Number of Subject:", value = "2"),
                numericInput(inputId = "rel_landmark_input", label = "Number of Landmark:", value = "3"),
-               textInput(inputId = "rel_path1_input", label = "Path1:", value = ""),
-               textInput(inputId = "rel_path2_input", label = "Path2:", value = ""),
+               textInput(inputId = "rel_path1_input", label = "Input file Path folder 1:", value = "", placeholder = "Please enter a file folder"),
+               textInput(inputId = "rel_path2_input", label = "Input file Path folder 2:", value = "", placeholder = "Please enter a file folder"),
                actionButton(inputId = "rel_submit_button", label = "Submit"),
                actionButton("close_interrel_button", "Close")
              ),
