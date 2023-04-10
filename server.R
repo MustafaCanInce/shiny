@@ -17,6 +17,7 @@ server <- function(input, output, session) {
   observeEvent(input$plots_button, {
     shinyjs::show("plot_div")
     shinyjs::hide("ui_div")
+    shinyjs::hide("img_div")
   })
 
   observeEvent(input$close_plots_Button, {
@@ -24,6 +25,29 @@ server <- function(input, output, session) {
     shinyjs::show("ui_div")
   })
 
+  observeEvent(input$help_button, {
+    shinyjs::show("img_div")
+    shinyjs::hide("plot_div")
+    shinyjs::hide("ui_div")
+  })
+
+  observeEvent(input$close_help_button, {
+    shinyjs::hide("img_div")
+    shinyjs::show("ui_div")
+  })
+
+  panel_names <- c("imputation_panel", "marking_panel", "done_panel", "inter_reliability_panel",
+                   "settings_panel", "scale_panel", "help_panel", "plots_panel")
+
+  show_hide_panels <- function(show_panel) {
+    for (panel_name in panel_names) {
+      if (panel_name == show_panel) {
+        shinyjs::show(panel_name)
+      } else {
+        shinyjs::hide(panel_name)
+      }
+    }
+  }
 
 
 
@@ -139,22 +163,7 @@ server <- function(input, output, session) {
     }
   })
 
-  panel_names <- c("imputation_panel", "marking_panel", "done_panel", "inter_reliability_panel",
-                   "settings_panel", "scale_panel", "help_panel", "plots_panel")
 
-  show_hide_panels <- function(show_panel) {
-    for (panel_name in panel_names) {
-      if (panel_name == show_panel) {
-        shinyjs::show(panel_name)
-      } else {
-        shinyjs::hide(panel_name)
-        if (panel_name == "plots_panel") {
-          shinyjs::hide("plot_div")
-          shinyjs::show("ui_div")
-        }
-      }
-    }
-  }
 
   observeEvent(input$imputation_Button, { show_hide_panels("imputation_panel") })
   observeEvent(input$markings_Button, { show_hide_panels("marking_panel") })
@@ -191,6 +200,16 @@ server <- function(input, output, session) {
 
       )
     }
+    file_path <- input$imp_csv_input
+    files <- list.files(file_path, pattern = '.csv')
+    if (is.null(input$imp_csv_input) || input$imp_csv_input == "") {
+      shinyalert("Warning!", "imp_csv_input cannot be empty.", type = "warning")
+      return()
+    } else if (!file.exists(input$imp_csv_input)) {
+      shinyalert("Warning!", "Invalid data path: rel_path1_input", type = "error")
+      return()
+    }
+
 
     else {
       # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
@@ -207,6 +226,7 @@ server <- function(input, output, session) {
       l2 <<- input$l2_input
 
     }
+
     show_modal_progress_line()
     ## File path : The current working directory that should include all csv files.
     ## l1,l2 : The reference anatomic landmarks
@@ -285,328 +305,7 @@ server <- function(input, output, session) {
     }
     ## This function impute the missing landmark and fill the given dataset.
 
-    impute.missing <- function(file_path,lm_list,l1,l2,imp_method) {
 
-      files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
-
-      #lm_list <- turn.to.df.list(file_path = file_path)
-      #na_number <- how.many.na.file(lm_list)
-
-
-      # get any of the data to determine the number of the landmark (I mean the number of row)
-      #suppressWarnings(t_data <-  as.data.frame(read.csv(paste(file_path,files[1],sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
-
-      nf <-  length(lm_list) #number of image
-      nr <-  nrow(lm_list[[1]]) #number of landmark(row)
-      nc <- ncol(lm_list[[1]]) #number of dimension(column)(in our case it is x and y)
-      #rm(t_data)
-      #data <- data.frame()
-
-      for (elem in lm_list) {
-        if (nrow(elem) != nr) {
-          shinyalert("Error!", "Please check the length of the csv's.", type = "error")
-        }
-      }
-
-
-      #In this part of the code implemented to determine the data that contains
-      #missing landmark and adding it to the beginning of the list.
-
-      vector_data <- c()
-      nii <-  0 #null_image_index
-      nli <- 0 # null_landmark_index
-      #This loop determine the index of the data that contains missing landmark
-      i <- 1
-      for (elem in lm_list) {
-        for (is_null in is.na(elem)) {
-          if (is_null == TRUE) {
-            nii <- i
-            break
-          }
-        }
-        i <- i + 1
-      }
-      #Save the null image into a variable
-      null_image_data <- lm_list[[nii]]
-      null_data_frame <-  is.na(null_image_data)
-      null_file_name <- gsub(" ","",files[nii])
-      #This loop determine the index of the landmark
-      i <- 1
-      for (boolean in null_data_frame) {
-        if (boolean == TRUE) {
-          nli <-  i
-          break
-        }
-        i <- i + 1
-      }
-      rm(null_data_frame)
-
-      i <-  1
-      vector_data <- c()
-      for (elem in lm_list) {
-        if (i != nii) {
-          vector_data <- c(vector_data,unlist(elem,use.names = FALSE))
-        }
-        i <- i + 1
-      }
-
-
-      #Adding null data to the beginning of the list
-
-      vector_data <- c(unlist(null_image_data,use.names = FALSE),vector_data)
-      #Put all data into a structure
-      st_data <-  structure(vector_data,.Dim = as.integer(c(nr,nc,nf)))
-      rm(vector_data)
-
-      #Determine the landmark that will use as a reference
-      #row,column,sublist
-      xl1 <- st_data[l1,1,1] #x coordinate of the l1
-      xl2 <- st_data[l2,1,1]  #x coordinate of the l2
-      yl1 <- st_data[l1,2,1] #y coordinate of the l1
-      yl2 <- st_data[l2,2,1] #y coordinate of the l2
-      D = (xl2 - xl1)^2 + (yl2 - yl1)^2
-      A = xl2 - xl1
-      B = yl2 - yl1
-
-      #Create bookstein coordinate from the missing data
-      my.dat.book <- bookstein2d(st_data)
-      my.dat.book.cor <- my.dat.book$bshpv
-      em_data <- my.dat.book.cor
-
-      #Reformat the dataset in order to applying the F statistic.
-      i = 1
-      new_data <- data.frame(matrix(nrow = nf, ncol = 2))
-      colnames(new_data) <- c("x", "y")
-
-
-      for (i in 1:nf) {
-        new_data[i,1] <- my.dat.book.cor[nli,1,i]
-        new_data[i,2] <- my.dat.book.cor[nli,2,i]
-      }
-
-      #Applying the F approach
-
-      if (imp_method == "minf") {
-        i = 2
-        distance_null_to_l1 <- matrix(nrow = nf, ncol = 1)
-        for (i in 2:nf) {
-          temp = my.dat.book.cor[,,i]
-          xc1 <- temp[l1,1]  #x-coordinate of the l1
-          yc1 <- temp[l1,2]  #y-coordinate of the l1
-          xc3 <- temp[nli,1] #x-coordinate of the null_landmark
-          yc3 <- temp[nli,2] #y-coordinate of the null_landmark
-          distance_null_to_l1[i,1] = sqrt((xc3 - xc1)^2 + (yc3 - yc1)^2)#Euclidean distance
-        }
-
-        distance_null_to_l1 <- distance_null_to_l1[-1,] #remove the NA
-        mean_distance_null_to_l1 = mean(distance_null_to_l1) # calculate the mean
-
-        i = 2
-        distance_null_to_l2 <- data.frame(matrix(nrow = nf, ncol = 1))
-        for (i in 2:nf)  {
-          temp = my.dat.book.cor[,,i]
-          xc2 <- temp[l2,1]   #x-coordinate of the l2
-          yc2 <- temp[l2,2]   #y-coordinate of the l2
-          xc3 <- temp[nli,1]  #x-coordinate of the null_landmark
-          yc3 <- temp[nli,2]  #y-coordinate of the null_landmark
-          distance_null_to_l2[i,1] = sqrt((xc3 - xc2)^2 + (yc3 - yc2)^2) #Euclidean distance
-        }
-
-        distance_null_to_l2 <- distance_null_to_l2[-1,] #remove the NA
-
-        mean_distance_null_to_l2 = mean(distance_null_to_l2) # calculate the mean
-
-
-        c = (-1/2)*(mean_distance_null_to_l1^2 - mean_distance_null_to_l2^2)
-        d = sqrt(mean_distance_null_to_l1^2 - (c + 0.5)^2)
-        y4 <- new_data
-        y4 <- as.matrix(y4)
-        y4[1,1] <- c
-        y4[1,2] <- d
-
-        #Calculate confidence interval
-        d2 <- distance_null_to_l1
-        d2lb <- mean_distance_null_to_l1 - 1.96*(sd(d2)/sqrt(length(d2)))  #### lower bound
-        d2ub <- mean_distance_null_to_l1 + 1.96*(sd(d2)/sqrt(length(d2))) #### upper bound
-
-        d3 <- distance_null_to_l2
-        d3lb <- mean_distance_null_to_l2 - 1.96*(sd(d3)/sqrt(length(d3)))  #### lower bound
-        d3ub <- mean_distance_null_to_l2 + 1.96*(sd(d3)/sqrt(length(d3)))  #### upper bound
-
-        closeAllConnections()
-
-        counter <- 0
-
-        fstatt <- matrix(byrow = TRUE)
-        ls <- matrix(byrow = TRUE)
-        counterS <- matrix(byrow = TRUE)
-        cs <- matrix(byrow = TRUE)
-        ds <- matrix(byrow = TRUE)
-        closeAllConnections()
-
-        #Calculate the f-statistic
-        for (c in seq(d2lb, d2ub, 0.2) )  {
-          for (d in seq(d3lb, d3ub, 0.2) ) {
-            counter <- counter + 1
-            y4[1,1] <- c
-            y4[1,2] <- d
-            gakt = nf*(mean(y4[,1]) - mean(y4))^2 + nf*(mean(y4[,2]) - mean(y4))^2
-            cat(gakt, sep = "\n", file = "gakt.txt", append = TRUE)
-            sink("gkt.txt")
-            k = 2
-            for (i in 1:k) {
-              for (j in 1:nf) {
-                t = ((y4[j,i] - mean(y4))^2)
-                cat(t, sep = "\n", file = "gkt.txt", append = TRUE)
-                j = j + 1
-              }
-              i = i + 1
-            }
-            gkt <- read.table("gkt.txt")
-            suppressWarnings(gkt <- as.numeric(unlist(gkt)))
-            gktson = sum(gkt)
-            gikt = gktson - gakt
-            fstat = ((gakt/(k - 1))/(gikt/(2*nf - k)))
-            fstatt[counter] <- fstat
-            closeAllConnections()
-            ##ls[counter]<-l
-            counterS[counter] <- counter
-            cs[counter] <- c
-            ds[counter] <- d
-          }
-          closeAllConnections()
-        }
-
-        # Arrange the result for Min(F) criterion
-        ts <- rbind(counterS, cs, ds, fstatt)
-        ts <- t(ts)
-        ts <- as.data.frame(ts)
-        colnames(ts) <- c("COUNTER", "X", "Y", "F")
-        minn <- ts %>%
-          slice(which.min(F))
-
-        unlink(c("gkt.txt","gakt.txt"))
-        #Reverting from bookstein coordinates to original coordinates for Min(F)
-
-        ub <- minn$X
-        vb <- minn$Y
-        C = (ub + 0.5)
-
-        xj2 = {A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2) #Predicted x-coordinate
-
-        yj2 = {D*C - A*{{A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B #Predicted y-coordinate
-
-        xmin <- as.numeric(unlist(xj2))
-        ymin <- as.numeric(unlist(yj2))
-
-
-        return(c(nli,null_file_name,xmin,ymin))
-      }
-      else if (imp_method == "mr") {
-        counter_mr <- 0
-        mr_data <- new_data
-        xt_mrs <- matrix(byrow = TRUE)
-        yt_mrs <- matrix(byrow = TRUE)
-        colnames(mr_data) <- c("v1", "v2")
-
-        imputed_Data <- mice(seed = 100, mr_data, method = "norm",print = FALSE, remove.collinear = FALSE,threshold = 1.0,max.cor = 1.0 )
-        xt_mr = imputed_Data$imp$v1[1,1]  ####Tahmin edilen x koordinatı
-        yt_mr = imputed_Data$imp$v2[1,1]  ####Tahmin edilen y koordinatı
-        xt_mrs[counter_mr] = xt_mr
-        yt_mrs[counter_mr] = yt_mr
-
-        ub_mr <- xt_mr
-        vb_mr <- yt_mr
-        C_mr = (ub_mr + 0.5)
-
-        yj2_mr = {D*C_mr - A*{{A*D*C_mr + xl1*(A^2 + B^2) - B*vb_mr*D}/(A^2 + B^2)} + A*xl1 + B*yl1}/B####Tahmin edilen y koordinatı
-
-
-        xj2_mr = {A*D*C_mr + xl1*(A^2 + B^2) - B*vb_mr*D}/(A^2 + B^2) ####Tahmin edilen x koordinatı
-
-        #{C_mr*D+A*xl1-B*yj+B*yl1}/A
-        xj2_mr <- as.numeric(unlist(xj2_mr))
-
-        yj2_mr <- as.numeric(unlist(yj2_mr))
-        return(c(nli,null_file_name,xj2_mr,yj2_mr))
-      }
-
-      else if (imp_method == "em") {
-
-        i = 1
-        indices_list_1 <- list()
-        indices_list_2 <- list()
-        indices_list_2 <- append(indices_list_2,1)
-        while (i <= nr - 2) {
-          indice1 = nf*i
-          indice2 = indice1 + 1
-          indices_list_1 <- append(indices_list_1,indice1)
-          indices_list_2 <- append(indices_list_2,indice2)
-          i <- i + 1
-        }
-        indices_list_2[length(indices_list_2)] <- NULL
-
-        k = nr #9
-        j = 1
-        new_x_list <- list()
-        while (j <= nf) { #1--5
-          i = nli #7
-          while (i <= k) { # 7--9
-            aa <- em_data[i,1,j]
-            new_x_list <- append(new_x_list,aa)
-
-            i = i + 1
-          }
-          j = j + 1
-        }
-
-        j = 1
-        new_y_list <- list()
-        while (j <= nf) {
-          i = nli
-          while (i <= k) {
-            bb <- em_data[i,2,j]
-            new_y_list <- append(new_y_list,bb)
-            i = i + 1
-          }
-          j = j + 1
-        }
-        new_x_list <- as.matrix(as.numeric(new_x_list))
-        new_y_list <- as.matrix(as.numeric(new_y_list))
-        i <- 1
-        start <- as.numeric(indices_list_2[i])
-        end <- as.numeric(indices_list_1[i])
-        new_em <- data.frame(matrix(nrow = (end - start + 1)))
-        while (i <= length(indices_list_1)) {
-          start <- as.numeric(indices_list_2[i])
-          end <- as.numeric(indices_list_1[i])
-          temp_em <- cbind(new_x_list[start:end,],new_y_list[start:end,])
-          new_em <- cbind(new_em,temp_em)
-          i <- i + 1
-        }
-        new_em <- new_em[,-1]
-        #yeni_em<-cbind(new_x_list[1:n1,], new_y_list[1:n1,],new_x_list[n2:n3,],new_y_list[n2:n3,], new_x_list[n4:n5,], new_y_list[n4:n5,], new_x_list[n6:n7,], new_y_list[n6:n7,])
-        result_em <- suppressWarnings(amelia(new_em, m = 1,p2s = 0))
-        deneme <- result_em$message
-        xt_ems <- matrix(byrow = TRUE)
-        yt_ems <- matrix(byrow = TRUE)
-        xt_em <- result_em$imputations$imp1[1,1]
-        yt_em <- result_em$imputations$imp1[1,2]
-        ub <- xt_em
-        vb <- yt_em
-        C = (ub + 0.5)
-        yj2_em = {(A^2 + B^2)*yl1 + B*C*D + vb*A*D}/(A^2 + B^2) ####Tahmin edilen y koordinatı
-
-        xj2_em = {A*D*C + xl1*(A^2 + B^2) - B*vb*D}/(A^2 + B^2)
-        xj2_em <- as.numeric(unlist(xj2_em))
-        yj2_em <- as.numeric(unlist(yj2_em))
-
-        if (is.null(xt_em) || is.null(yt_em)) {
-          return(c(result_em[["message"]]))
-        }else{
-          return(c(nli, null_file_name, xj2_em,yj2_em))}
-      }
-    }
 
     how.many.na.file <- function(df_list){
       null_number <- 0
@@ -1012,17 +711,16 @@ server <- function(input, output, session) {
     remove_modal_progress()
     result <- impute.multiple.missing(file_path,l1,l2,imp_method = imp_method)
     if (!is.null(result)) {
-      file_path <- input$imp_csv_input
-      files <- list.files(file_path, pattern = '.csv')
 
-      print(files)
+
 
       for (i in seq_along(result)) {
-        print(result[[i]][2])
+
         dosya_adi <- result[[i]][2]
+
         if (dosya_adi %in% files) {
 
-          yeni_veri <- read.csv(file.path(getwd(), "output", dosya_adi))
+          yeni_veri <- read.csv(paste(file_path,"/", dosya_adi, sep = ""), header = TRUE)
           na_index <- result[[i]][1]
           yeni_veri[na_index, ] <- result[[i]][3]
           yeni_veri <- rbind(yeni_veri, paste("#","Index number of NA value: ", result[[i]][1]))
@@ -1095,6 +793,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$ratio_button, {
     ratio <<- 0
+    cal_check <<- TRUE
     shinyalert(title = "Success",
                text = "Ratio resetted!",
                type = "success",
@@ -1192,24 +891,31 @@ server <- function(input, output, session) {
 
 
   ratio <- 0
+  cal_check <- TRUE
   results_df <- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
   observeEvent(input$scale_cal_Button, {
-    if(length(xy_new$x) >= 2 && ratio == 0) {
-      delta_x <- xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1]
-      delta_y <- xy_new$y[length(xy_new$y)] - xy_new$y[length(xy_new$y)-1]
-      result <- sqrt(delta_x^2 + delta_y^2)
-      ratio <<- result / known_distance
-      showNotification(paste0("scaling was successful calibrated. ratio is:",ratio))
 
-      for (i in 1:2) {
-        xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
-        xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
+    if (cal_check) {
+        if(length(xy_new$x) >= 2 && ratio == 0) {
+        delta_x <- xy_new$x[length(xy_new$x)] - xy_new$x[length(xy_new$x)-1]
+        delta_y <- xy_new$y[length(xy_new$y)] - xy_new$y[length(xy_new$y)-1]
+        result <- sqrt(delta_x^2 + delta_y^2)
+        ratio <<- result / known_distance
+        showNotification(paste0("scaling was successful calibrated. ratio is:",ratio))
+
+        for (i in 1:2) {
+          xy_new$x <- xy_new$x[0:(length(xy_new$x)-1)]
+          xy_new$y <- xy_new$y[0:(length(xy_new$y)-1)]
+        }
+        cal_check <<- FALSE
       }
-
+      else {
+        showNotification(paste0("Click on at least two landmarks on the plot and then press the scale button."))
+      }
     }
-    else {
-      showNotification(paste0("Click on at least two landmarks on the plot and then press the scale button."))
-    }
+    else{
+      showNotification(paste0("Calibration has already been done."))
+      }
   })
   observeEvent(input$scale_meas_Button, {
 
@@ -1247,301 +953,335 @@ server <- function(input, output, session) {
     number_of_landmark <- input$rel_landmark_input
     path1 <- input$rel_path1_input
     path2 <- input$rel_path2_input
-
-    reliability_IR <- function(number_of_dimension,number_of_subject,number_of_landmark,path1,path2) {
-      files1 <-  list.files(path1,pattern = '.csv')
-      files2 <-  list.files(path2,pattern = '.csv')
-
-      if (length(files1) != length(files2)) {
-        shinyalert("Error!", "Please provide equal number of subject", type = "error")
+    if (is.na(number_of_dimension) || number_of_dimension == "") {
+      shinyalert("Warning!", "rel_dimension_input cannot be empty.", type = "warning")
+      return()
+    } else if (is.na(number_of_subject) || number_of_subject == "") {
+      shinyalert("Warning!", "rel_subject_input cannot be empty.", type = "warning")
+      return()
+    } else if (is.na(number_of_landmark) || number_of_landmark == "") {
+      shinyalert("Warning!", "rel_landmark_input cannot be empty.", type = "warning")
+      return()
+    } else if (is.null(path1) || path1 == "") {
+      shinyalert("Warning!", "rel_path1_input cannot be empty.", type = "warning")
+      return()
+    } else if (is.null(path2) || path2 == "") {
+      shinyalert("Warning!", "rel_path2_input cannot be empty.", type = "warning")
+      return()
+    } else if (!file.exists(path1)) {
+      shinyalert("Warning!", "Invalid data path: rel_path1_input", type = "error")
+      return()
+    } else if (!file.exists(path2)) {
+      shinyalert("Warning!", "Invalid data path: rel_path2_input", type = "error")
+      return()
+    } else {
+      path1_csv_count <- length(list.files(path1, pattern = ".csv$"))
+      path2_csv_count <- length(list.files(path2, pattern = ".csv$"))
+      if (path1_csv_count != path2_csv_count) {
+        shinyalert("Warning!", "The number of CSV files in rel_path1_input and rel_path2_input must be equal.", type = "warning")
+        return()
       }
 
-      rater_1_landmarks <- setNames(data.frame(matrix(ncol = 2, nrow = 0)),
-                                    c("x", "y"))
+      reliability_IR <- function(number_of_dimension,number_of_subject,number_of_landmark,path1,path2) {
 
-      for (file in files1) {
-        suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path1,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
-        rater_1_landmarks <- rbind(rater_1_landmarks,temp_data)
-      }
+        files1 <-  list.files(path1,pattern = '.csv')
+        files2 <-  list.files(path2,pattern = '.csv')
+
+        if (length(files1) != length(files2)) {
+          shinyalert("Error!", "Please provide equal number of subject", type = "error")
+        }
+
+        rater_1_landmarks <- setNames(data.frame(matrix(ncol = 2, nrow = 0)),
+                                      c("x", "y"))
+
+        for (file in files1) {
+          suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path1,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
+          rater_1_landmarks <- rbind(rater_1_landmarks,temp_data)
+        }
 
 
-      #for (dataframe_i in rater_1_landmarks_list) {
-      #  rater_1_landmarks <- rbind(rater_1_landmarks, dataframe_i)
-      #}
+        #for (dataframe_i in rater_1_landmarks_list) {
+        #  rater_1_landmarks <- rbind(rater_1_landmarks, dataframe_i)
+        #}
 
-      rater_2_landmarks <- setNames(data.frame(matrix(ncol = 2, nrow = 0)),
-                                    c("x", "y"))
+        rater_2_landmarks <- setNames(data.frame(matrix(ncol = 2, nrow = 0)),
+                                      c("x", "y"))
 
 
-      for (file in files2) {
-        suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path2,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
-        rater_2_landmarks <- rbind(rater_2_landmarks,temp_data)
-      }
+        for (file in files2) {
+          suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path2,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
+          rater_2_landmarks <- rbind(rater_2_landmarks,temp_data)
+        }
 
-      #for (dataframe_i in rater_2_landmarks_list) {
-      #  rater_2_landmarks <- rbind(rater_2_landmarks, dataframe_i)
-      #}
+        #for (dataframe_i in rater_2_landmarks_list) {
+        #  rater_2_landmarks <- rbind(rater_2_landmarks, dataframe_i)
+        #}
 
-      a = 0; rr = 0; ka = 0; kb = 0; sn1 = 1; tlsr = 0; tlr2 = 0; tr2 = 0; tr1a = 0; tr1b = 0;x = 0
-      tl2 = 0; ts2 = 0; tlsb2 = 0; td = 0; tlre = 0; tsre = 0; sn2 = 0; d = 0; trs2 = 0; srkt = 0;i = 0;
-      C = choose(number_of_landmark,2); sn2 = (number_of_subject*(C)); s = C*number_of_subject;
+        a = 0; rr = 0; ka = 0; kb = 0; sn1 = 1; tlsr = 0; tlr2 = 0; tr2 = 0; tr1a = 0; tr1b = 0;x = 0
+        tl2 = 0; ts2 = 0; tlsb2 = 0; td = 0; tlre = 0; tsre = 0; sn2 = 0; d = 0; trs2 = 0; srkt = 0;i = 0;
+        C = choose(number_of_landmark,2); sn2 = (number_of_subject*(C)); s = C*number_of_subject;
 
-      R <- matrix(nrow = 2*number_of_subject*C,ncol = 4)
+        R <- matrix(nrow = 2*number_of_subject*C,ncol = 4)
 
-      P <- matrix(nrow = number_of_subject*C,ncol = 4)
-      V <- matrix(nrow = number_of_subject*C,ncol = 4)
-      for (a in 1:2) {
-        for (b in 1:number_of_subject) {
-          for (c in 1:C) {
-            d = d + 1; R[d,1] = a; R[d,2] = b; R[d,3] = c;
+        P <- matrix(nrow = number_of_subject*C,ncol = 4)
+        V <- matrix(nrow = number_of_subject*C,ncol = 4)
+        for (a in 1:2) {
+          for (b in 1:number_of_subject) {
+            for (c in 1:C) {
+              d = d + 1; R[d,1] = a; R[d,2] = b; R[d,3] = c;
+            }
           }
         }
-      }
 
 
-      if (number_of_dimension < 3) {
-        for (p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)) {
-          t = number_of_landmark + p; m = t - number_of_landmark;
-          for (j in m:(t - 1)) {
-            for (i in m:(t - 1)) {
-              if ((j < i) & (i != j)) {
-                acia1 = sqrt(((rater_1_landmarks[j,1] - rater_1_landmarks[i,1])^2) + ((rater_1_landmarks[j,2] - rater_1_landmarks[i,2])^2));
-                R[sn1,4] = acia1; sn2 = sn2 + 1;
-                acib1 = sqrt(((rater_2_landmarks[j,1] - rater_2_landmarks[i,1])^2) + ((rater_2_landmarks[j,2] - rater_2_landmarks[i,2])^2));
-                R[sn2,4] = acib1;
-                tlsr = tlsr + (acia1^2) + (acib1^2);
-                tr1a = tr1a + acia1; tr1b = tr1b + acib1;
-                td = td + acia1 + acib1;
-                sn1 = sn1 + 1;
+        if (number_of_dimension < 3) {
+          for (p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)) {
+            t = number_of_landmark + p; m = t - number_of_landmark;
+            for (j in m:(t - 1)) {
+              for (i in m:(t - 1)) {
+                if ((j < i) & (i != j)) {
+                  acia1 = sqrt(((rater_1_landmarks[j,1] - rater_1_landmarks[i,1])^2) + ((rater_1_landmarks[j,2] - rater_1_landmarks[i,2])^2));
+                  R[sn1,4] = acia1; sn2 = sn2 + 1;
+                  acib1 = sqrt(((rater_2_landmarks[j,1] - rater_2_landmarks[i,1])^2) + ((rater_2_landmarks[j,2] - rater_2_landmarks[i,2])^2));
+                  R[sn2,4] = acib1;
+                  tlsr = tlsr + (acia1^2) + (acib1^2);
+                  tr1a = tr1a + acia1; tr1b = tr1b + acib1;
+                  td = td + acia1 + acib1;
+                  sn1 = sn1 + 1;
+                }
               }
             }
           }
         }
-      }
-      if (number_of_dimension > 2) {
-        for (p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)) {
-          t = number_of_landmark + p; m = t - number_of_landmark;
-          for (j in m:(t - 1)) {
-            for (i in m:(t - 1)) {
-              if ((j < i) & (i != j)) {
-                acia1 = sqrt(((rater_1_landmarks[j,1] - rater_1_landmarks[i,1])^2) + ((rater_1_landmarks[j,2] - rater_1_landmarks[i,2])^2) + ((rater_1_landmarks[j,3] - rater_1_landmarks[i,3])^2));
-                R[sn1,4] = as.integer(acia1); sn2 = sn2 + 1;
-                acib1 = sqrt(((rater_2_landmarks[j,1] - rater_2_landmarks[i,1])^2) + ((rater_2_landmarks[j,2] - rater_2_landmarks[i,2])^2) + ((rater_2_landmarks[j,3] - rater_2_landmarks[i,3])^2));
-                R[sn2,4] = as.integer(acib1);
-                tlsr = tlsr + (acia1^2) + (acib1^2);
-                tr1a = tr1a + acia1; tr1b = tr1b + acib1;
-                td = td + acia1 + acib1;
-                sn1 = sn1 + 1;
+        if (number_of_dimension > 2) {
+          for (p in seq(from = 1, to = number_of_subject*number_of_landmark, by = number_of_landmark)) {
+            t = number_of_landmark + p; m = t - number_of_landmark;
+            for (j in m:(t - 1)) {
+              for (i in m:(t - 1)) {
+                if ((j < i) & (i != j)) {
+                  acia1 = sqrt(((rater_1_landmarks[j,1] - rater_1_landmarks[i,1])^2) + ((rater_1_landmarks[j,2] - rater_1_landmarks[i,2])^2) + ((rater_1_landmarks[j,3] - rater_1_landmarks[i,3])^2));
+                  R[sn1,4] = as.integer(acia1); sn2 = sn2 + 1;
+                  acib1 = sqrt(((rater_2_landmarks[j,1] - rater_2_landmarks[i,1])^2) + ((rater_2_landmarks[j,2] - rater_2_landmarks[i,2])^2) + ((rater_2_landmarks[j,3] - rater_2_landmarks[i,3])^2));
+                  R[sn2,4] = as.integer(acib1);
+                  tlsr = tlsr + (acia1^2) + (acib1^2);
+                  tr1a = tr1a + acia1; tr1b = tr1b + acib1;
+                  td = td + acia1 + acib1;
+                  sn1 = sn1 + 1;
+                }
               }
             }
           }
         }
-      }
 
-      df = (td^2)/(2*C*number_of_subject)
-      tr2 = (tr1a^2) + (tr1b^2); rkt = (tr2/(C*number_of_subject)) - df; rko = ((tr2/(C*number_of_subject)) - df)/1; ms_r = rko;
+        df = (td^2)/(2*C*number_of_subject)
+        tr2 = (tr1a^2) + (tr1b^2); rkt = (tr2/(C*number_of_subject)) - df; rko = ((tr2/(C*number_of_subject)) - df)/1; ms_r = rko;
 
-      for (i in 1:s) {
-        for (j in 1:4) {
-          P[i,j] = R[i,j];
-        }
-      }
-
-      v = 0
-      xyz = s + 1
-      for (i in xyz:(2*s)) {
-        v = v + 1;
-        for (j in 1:4) {
-          V[v,j] = R[i,j];
-        }
-      }
-
-      for (l in 1:C) {
-        tl1 = 0;
         for (i in 1:s) {
-          if (l > P[i,3] - 1 & (l < P[i,3] + 1)) {
-            tl1 = tl1 + P[i,4];}
-          if (l > (V[i,3] - 1) & (l < V[i,3] + 1)) {
-            tl1 = tl1 + V[i,4];}
+          for (j in 1:4) {
+            P[i,j] = R[i,j];
+          }
         }
-        tl2 = tl2 + (tl1^2);
-      }
 
-      lkt = (tl2/(number_of_subject*2)) - df
-
-      for (sb in 1:number_of_subject) {
-        ts1 = 0;
-        for (i in 1:s) {
-          if ((sb > (P[i,2] - 1) & sb < (P[i,2] + 1))) {
-            ts1 = ts1 + P[i,4];}
-          if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
-            ts1 = ts1 + V[i,4];}
+        v = 0
+        xyz = s + 1
+        for (i in xyz:(2*s)) {
+          v = v + 1;
+          for (j in 1:4) {
+            V[v,j] = R[i,j];
+          }
         }
-        ts2 = ts2 + (ts1^2);
-      }
 
-      skt = (ts2/(C*2)) - df;
-
-      for (l in 1:C) {
-        for (sb in 1:number_of_subject) {
-          tls1 = 0;
+        for (l in 1:C) {
+          tl1 = 0;
           for (i in 1:s) {
-            if ((l > (P[i,3] - 1)) & (l < (P[i,3] + 1))) {
-              if ((sb > (P[i,2] - 1)) & (sb < (P[i,2] + 1))) {
-                tls1 = tls1 + P[i,4];}
-            }
-
-            if ((l > (V[i,3] - 1) & l < (V[i,3] + 1))) {
-              if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
-                tls1 = tls1 + V[i,4];}
-            }
+            if (l > P[i,3] - 1 & (l < P[i,3] + 1)) {
+              tl1 = tl1 + P[i,4];}
+            if (l > (V[i,3] - 1) & (l < V[i,3] + 1)) {
+              tl1 = tl1 + V[i,4];}
           }
-          tlsb2 = tlsb2 + (tls1^2);
+          tl2 = tl2 + (tl1^2);
         }
-      }
 
-      lskt = (tlsb2/2) - df - lkt - skt;
+        lkt = (tl2/(number_of_subject*2)) - df
 
-      for (l in 1:C) {
-        tlrp = 0;
-        tlrv = 0;
-        for (i in 1:s) {
-          if ((l > (P[i,3] - 1) & l < (P[i,3] + 1))) {
-            tlrp = tlrp + P[i,4]; tlrv = tlrv + V[i,4];}
-        }
-        tlre = tlre + (tlrp^2 + tlrv^2);
-      }
-
-      lrkt = (tlre/number_of_subject) - df - lkt - rkt;
-
-      for (r in 1:2) {
         for (sb in 1:number_of_subject) {
-          trsp = 0; trsv = 0;
+          ts1 = 0;
           for (i in 1:s) {
-            if ((r > (P[i,1] - 1) & r < (P[i,1] + 1))) {
-              if ((sb > (P[i,2] - 1) & sb < (P[i,2] + 1))) {
-                trsp = trsp + P[i,4];
-              }
-            }
-            if ((r > (V[i,1] - 1) & r < (V[i,1] + 1))) {
-              if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
-                trsv = trsv + V[i,4];
-              }
-            }
+            if ((sb > (P[i,2] - 1) & sb < (P[i,2] + 1))) {
+              ts1 = ts1 + P[i,4];}
+            if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
+              ts1 = ts1 + V[i,4];}
           }
-          trs2 = trs2 + (trsp^2) + (trsv^2);
+          ts2 = ts2 + (ts1^2);
         }
+
+        skt = (ts2/(C*2)) - df;
+
+        for (l in 1:C) {
+          for (sb in 1:number_of_subject) {
+            tls1 = 0;
+            for (i in 1:s) {
+              if ((l > (P[i,3] - 1)) & (l < (P[i,3] + 1))) {
+                if ((sb > (P[i,2] - 1)) & (sb < (P[i,2] + 1))) {
+                  tls1 = tls1 + P[i,4];}
+              }
+
+              if ((l > (V[i,3] - 1) & l < (V[i,3] + 1))) {
+                if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
+                  tls1 = tls1 + V[i,4];}
+              }
+            }
+            tlsb2 = tlsb2 + (tls1^2);
+          }
+        }
+
+        lskt = (tlsb2/2) - df - lkt - skt;
+
+        for (l in 1:C) {
+          tlrp = 0;
+          tlrv = 0;
+          for (i in 1:s) {
+            if ((l > (P[i,3] - 1) & l < (P[i,3] + 1))) {
+              tlrp = tlrp + P[i,4]; tlrv = tlrv + V[i,4];}
+          }
+          tlre = tlre + (tlrp^2 + tlrv^2);
+        }
+
+        lrkt = (tlre/number_of_subject) - df - lkt - rkt;
+
+        for (r in 1:2) {
+          for (sb in 1:number_of_subject) {
+            trsp = 0; trsv = 0;
+            for (i in 1:s) {
+              if ((r > (P[i,1] - 1) & r < (P[i,1] + 1))) {
+                if ((sb > (P[i,2] - 1) & sb < (P[i,2] + 1))) {
+                  trsp = trsp + P[i,4];
+                }
+              }
+              if ((r > (V[i,1] - 1) & r < (V[i,1] + 1))) {
+                if ((sb > (V[i,2] - 1) & sb < (V[i,2] + 1))) {
+                  trsv = trsv + V[i,4];
+                }
+              }
+            }
+            trs2 = trs2 + (trsp^2) + (trsv^2);
+          }
+        }
+
+        srkt = (trs2/C) - df - rkt - skt;
+
+        tlsrkt = tlsr - df - lkt - rkt - skt - lrkt - lskt - srkt
+
+        ms_lrs = tlsrkt/((number_of_subject - 1)*(C - 1));
+        ms_lr = lrkt/(C - 1);
+        ms_ls = lskt/((number_of_subject - 1)*(C - 1));
+        ms_rs = srkt/(number_of_subject - 1);
+        ms_l = lkt/(C - 1);
+        ms_s = skt/(number_of_subject - 1);
+
+        var_lrs = ms_lrs;
+        var_lr = (ms_lr - ms_lrs)/number_of_subject;
+        var_ls = (ms_ls - ms_lrs)/2;
+        var_rs = (ms_rs - ms_lrs)/C;
+        var_l = (ms_l - ms_lr - ms_ls + ms_lrs)/(2*number_of_subject);
+        var_r = (ms_r - ms_lr - ms_rs + ms_lrs)/(C*number_of_subject);
+        var_s = (ms_s - ms_ls - ms_rs + ms_lrs)/(2*C);
+
+        if (var_lrs < 0) {
+          var_lrs = 0;
+        }
+
+        if (var_lr < 0) {
+          var_lr = 0;
+        }
+
+        if (var_ls < 0) {
+          var_ls = 0;
+        }
+
+        if (var_rs < 0) {
+          var_rs = 0;
+        }
+
+        if (var_l < 0) {
+          var_l = 0;
+        }
+
+        if (var_r < 0) {
+          var_r = 0;
+        }
+        if (var_s < 0) {
+          var_s = 0;
+        }
+
+        var_rel = (var_lr/2) + (var_ls/number_of_subject) + (var_lrs/(2*number_of_subject));
+
+        G = var_l/(var_l + var_rel);
+        R_df <- data.frame(R)
+        colnames(R_df) <- c("Rater","Subject","Landmark","Euclidean Distances")
+
+        dir.create(file.path(my_file_path[1], "reliability"), showWarnings = FALSE)
+
+        write.csv(R_df, file = file.path(my_file_path[1], "reliability", "euclidean_distances_between_the_landmark_pairs.csv"), row.names = FALSE)
+
+        #cat('Rater-->r, Subject-->s, Landmark eslestirmesi-->l' )
+        #cat(' \n r s l Euclidean distances\n ');print(R)
+
+        #output_df <- data.frame(row.names = c("r","l","s","lXs","lXr","rXs","lXsXr"))
+        #colnames(output_df) <- c("sum of square","mean square","variance")
+
+        sos <- c(lkt,rkt,skt,lrkt,lskt,srkt,tlsrkt)
+        ms <- c(ms_r,ms_l,ms_s,ms_ls,ms_lr,ms_rs,ms_lrs)
+        var <- c(var_r,var_l,var_s,var_ls,var_lr,var_rs,var_lrs)
+        output_df <- data.frame(sos,ms,var,row.names = c("l","r","s","lXr","lXs","rXs","lXrXs"))
+
+        colnames(output_df) <- c("sum of square","mean square","variance")
+        write.csv(output_df, file = file.path(my_file_path[1], "reliability", "estimated_variance_components.csv"), row.names = TRUE)
+
+
+        #write("\n",file="estimated_variance_components.csv",append = TRUE)
+        write(paste("#Variance of rel : ", var_rel), file = file.path(my_file_path[1], "reliability", "estimated_variance_components.csv"), append = TRUE)
+        #write(cat("\n"),file="estimated_variance_components.csv",append = TRUE)
+        write(paste("#G COEFFICIENT : ", G), file = file.path(my_file_path[1], "reliability", "estimated_variance_components.csv"), append = TRUE)
+        #writeLines(c(cat("\n"),paste("#Variance of rel : ", var_rel),cat("\n"),paste( "G COEFFICIENT : ", G)), fileConn)
+
+        shinyalert("Success!", paste("Output have been saved to", my_file_path[1], "folder."), type = "success")
+
+        #cat('Reliability Output:')
+        #print(kable(output_df, format = "pipe"))
+        #cat("\n")
+        #cat("                      Variance of rel : ", var_rel)
+        #cat("\n")
+        #cat("                       G COEFFICIENT : ", G)
+        #cat('\n r sum of square',rkt)
+        #cat('\n l sum of square', lkt)
+        #cat('\n s sum of square', skt)
+        #cat('\n lxs sum of square', lskt)
+        #cat('\n lxr sum of square', lrkt)
+        #cat('\n rxs sum of square', srkt)
+        #cat('\n lxsxr sum of square', tlsrkt)
+        #cat('\n r mean square', ms_r)
+        #cat('\n l mean square', ms_l)
+        #cat('\n s mean square', ms_s)
+        #cat('\n lxs mean square', ms_ls)
+        #cat('\n lxr mean square', ms_lr)
+        #cat('\n rxs mean square', ms_rs)
+        #cat('\n lxrxs mean square', ms_lrs)
+        #cat('\n variance of r', var_r)
+        #cat('\n variance of s', var_s)
+        #cat('\n variance of lxs',var_ls)
+        #cat('\n variance of lxr', var_lr)
+        #cat('\n variance of rxs', var_rs)
+        #cat('\n variance of lxrxs', var_lrs)
+        #cat('\n variance of rel', var_rel)
+        #cat('\n')
+        #cat(G);
+        #cat('\n G COEFFICIENT')
+        #return(G)
       }
-
-      srkt = (trs2/C) - df - rkt - skt;
-
-      tlsrkt = tlsr - df - lkt - rkt - skt - lrkt - lskt - srkt
-
-      ms_lrs = tlsrkt/((number_of_subject - 1)*(C - 1));
-      ms_lr = lrkt/(C - 1);
-      ms_ls = lskt/((number_of_subject - 1)*(C - 1));
-      ms_rs = srkt/(number_of_subject - 1);
-      ms_l = lkt/(C - 1);
-      ms_s = skt/(number_of_subject - 1);
-
-      var_lrs = ms_lrs;
-      var_lr = (ms_lr - ms_lrs)/number_of_subject;
-      var_ls = (ms_ls - ms_lrs)/2;
-      var_rs = (ms_rs - ms_lrs)/C;
-      var_l = (ms_l - ms_lr - ms_ls + ms_lrs)/(2*number_of_subject);
-      var_r = (ms_r - ms_lr - ms_rs + ms_lrs)/(C*number_of_subject);
-      var_s = (ms_s - ms_ls - ms_rs + ms_lrs)/(2*C);
-
-      if (var_lrs < 0) {
-        var_lrs = 0;
-      }
-
-      if (var_lr < 0) {
-        var_lr = 0;
-      }
-
-      if (var_ls < 0) {
-        var_ls = 0;
-      }
-
-      if (var_rs < 0) {
-        var_rs = 0;
-      }
-
-      if (var_l < 0) {
-        var_l = 0;
-      }
-
-      if (var_r < 0) {
-        var_r = 0;
-      }
-      if (var_s < 0) {
-        var_s = 0;
-      }
-
-      var_rel = (var_lr/2) + (var_ls/number_of_subject) + (var_lrs/(2*number_of_subject));
-
-      G = var_l/(var_l + var_rel);
-      R_df <- data.frame(R)
-      colnames(R_df) <- c("Rater","Subject","Landmark","Euclidean Distances")
-      write.csv(R_df,"euclidean_distances_between_the_landmark_pairs.csv",row.names = FALSE)
-
-      #cat('Rater-->r, Subject-->s, Landmark eslestirmesi-->l' )
-      #cat(' \n r s l Euclidean distances\n ');print(R)
-
-      #output_df <- data.frame(row.names = c("r","l","s","lXs","lXr","rXs","lXsXr"))
-      #colnames(output_df) <- c("sum of square","mean square","variance")
-
-      sos <- c(lkt,rkt,skt,lrkt,lskt,srkt,tlsrkt)
-      ms <- c(ms_r,ms_l,ms_s,ms_ls,ms_lr,ms_rs,ms_lrs)
-      var <- c(var_r,var_l,var_s,var_ls,var_lr,var_rs,var_lrs)
-      output_df <- data.frame(sos,ms,var,row.names = c("l","r","s","lXr","lXs","rXs","lXrXs"))
-
-      colnames(output_df) <- c("sum of square","mean square","variance")
-      write.csv(output_df,"estimated_variance_components.csv",row.names = TRUE)
-
-
-      #write("\n",file="estimated_variance_components.csv",append = TRUE)
-      write(paste("#Variance of rel : ", var_rel),file = "estimated_variance_components.csv",append = TRUE)
-      #write(cat("\n"),file="estimated_variance_components.csv",append = TRUE)
-      write(paste( "#G COEFFICIENT : ", G),file = "estimated_variance_components.csv",append = TRUE)
-      #writeLines(c(cat("\n"),paste("#Variance of rel : ", var_rel),cat("\n"),paste( "G COEFFICIENT : ", G)), fileConn)
-
-
-
-      #cat('Reliability Output:')
-      #print(kable(output_df, format = "pipe"))
-      #cat("\n")
-      #cat("                      Variance of rel : ", var_rel)
-      #cat("\n")
-      #cat("                       G COEFFICIENT : ", G)
-      #cat('\n r sum of square',rkt)
-      #cat('\n l sum of square', lkt)
-      #cat('\n s sum of square', skt)
-      #cat('\n lxs sum of square', lskt)
-      #cat('\n lxr sum of square', lrkt)
-      #cat('\n rxs sum of square', srkt)
-      #cat('\n lxsxr sum of square', tlsrkt)
-      #cat('\n r mean square', ms_r)
-      #cat('\n l mean square', ms_l)
-      #cat('\n s mean square', ms_s)
-      #cat('\n lxs mean square', ms_ls)
-      #cat('\n lxr mean square', ms_lr)
-      #cat('\n rxs mean square', ms_rs)
-      #cat('\n lxrxs mean square', ms_lrs)
-      #cat('\n variance of r', var_r)
-      #cat('\n variance of s', var_s)
-      #cat('\n variance of lxs',var_ls)
-      #cat('\n variance of lxr', var_lr)
-      #cat('\n variance of rxs', var_rs)
-      #cat('\n variance of lxrxs', var_lrs)
-      #cat('\n variance of rel', var_rel)
-      #cat('\n')
-      #cat(G);
-      #cat('\n G COEFFICIENT')
-      #return(G)
+      reliability_IR(number_of_dimension,number_of_subject,number_of_landmark,path1,path2)
     }
-    reliability_IR(number_of_dimension,number_of_subject,number_of_landmark,path1,path2)
+
   })
 
 

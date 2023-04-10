@@ -17,7 +17,6 @@ ui <- fluidPage(
       var width = window.innerWidth;
       var height = window.innerHeight;
       Shiny.setInputValue('screenSize', [width, height]);
-      console.log('Ekran çözünürlüğü: ' + width + 'x' + height);
     }, 500);
   });
 });
@@ -76,7 +75,7 @@ ui <- fluidPage(
                actionButton(
                  icon = NULL, inputId = "show_scale_Button", width = "15vh", class = "all_action_button", label = "Scaling"),
                actionButton(
-                 icon = NULL, inputId = "show_inrel_Button", width = "15vh", class = "all_action_button", label = "Inter Reliability"),
+                 icon = NULL, inputId = "show_inrel_Button", width = "15vh", class = "all_action_button", label = "Reliability"),
                actionButton(
                  icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = "Imputation"),
                actionButton(
@@ -93,8 +92,8 @@ ui <- fluidPage(
                HTML("<b>Imputation Settings</b>"),
                br(),
                "L1 and L2 are anatomical reference landmarks. Please provide them.",
-               numericInput(inputId = "l1_input", label = "L1:", value = "1"),
-               numericInput(inputId = "l2_input", label = "L2:", value = "2"),
+               numericInput(inputId = "l1_input", label = "L-1:", value = "1"),
+               numericInput(inputId = "l2_input", label = "L-2:", value = "2"),
                textInput(inputId = "imp_csv_input", label = "Csv file input file path:", value = "", placeholder = "Input csv folder path"),
                radioButtons(inputId = "imp_radio_button" , label = "Imputation Method:", choices = c("minF Method", "Multiple Regression Method", "Expected Maximization Method")),
                div(style = "display:flex; flex-direction: row; justify-content: center;",
@@ -201,7 +200,8 @@ ui <- fluidPage(
              wellPanel(
                HTML("<b>Help</b>"),
                br(),
-               tags$a(href = "https://ibb.co/V2xfG9m", "Flow Chart"),
+               #tags$a(href = "https://ibb.co/V2xfG9m", "Flow Chart"),
+               #tags$img(src = "https://i.ibb.co/V2xfG9m/flow-chart.png"),
                br(),
                tags$a(href = "https://youtu.be/tN3gev199Lw", "Video"),
                br(),
@@ -234,7 +234,7 @@ ui <- fluidPage(
            absolutePanel(
              align = "center",
              wellPanel(
-               HTML("<b>Inter Reliability</b>"),
+               HTML("<b>Inter Rater Landmark Reliability</b>"),
                br(),
                numericInput(inputId = "rel_dimension_input", label = "Number of Dimension:", value = "1"),
                numericInput(inputId = "rel_subject_input", label = "Number of Subject:", value = "2"),
@@ -255,8 +255,20 @@ ui <- fluidPage(
            div(
              id = "plot_div",
              style = "display:none",
-             plotOutput("plot", height = "50vh", width = "50vh")
+             plotOutput("plot", height = "70vh", width = "80vh")
            )
+    )
+  ),
+
+  ui <- fluidPage(
+    fluidRow(
+      column(6, offset = 2,
+             div(
+               id = "img_div",
+               style = "display:none; margin-left: 21vh;",
+               img(src = "https://i.ibb.co/VYTtHx8/flow-09.png", width = "890px", height = "1600px")
+             )
+      )
     )
   )
 )
