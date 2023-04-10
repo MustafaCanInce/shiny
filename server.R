@@ -237,21 +237,21 @@ server <- function(input, output, session) {
     ## l1,l2 : The reference anatomic landmarks
     ## We should give an error if the user did not specify the l1 l2
     impute.multiple.missing <- function(file_path,l1,l2,imp_method){
-      
+
       ####check file path is exist
       if (!file.exists(file_path)) {
         shinyalert("Warning!", "Invalid data path: input_path", type = "error")
         return()
       }
-      
-      
+
+
       files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
       ####check file path is empty
       if(length(files) == 0){
         shinyalert("Error!", "Invalid data path: rel_path1_input", type = "error")
         return()
       }
-      
+
       landmark_list <- turn.to.df.list(file_path = file_path)
       na_number <- how.many.na.file(landmark_list)
       null_file_name <- vector(mode = 'list',length = as.numeric(na_number[1]))
@@ -276,21 +276,21 @@ server <- function(input, output, session) {
           if (this.file.has.na(landmark_list[[i]])) {
             null_files[[l]] <- landmark_list[[i]]
             l <- l + 1
-            
+
           }
         }
-        
+
         i <- 1
-        
+
         for (elem in na_number[[2]]) {
           landmark_list[[elem]] <- NULL
         }
-        
+
         result_list <- vector(mode = 'list',length = length(null_files))
-        
+
         #null_files_names <- vector(mode='list',length = length(null_files))
         indices <- vector(mode = 'list',length = length(null_files))
-        
+
         for (i in 1:length(null_files)){
           temp_list <- landmark_list
           temp_list[[length(temp_list) +1]] <- null_files[[length(null_files)]]
@@ -309,7 +309,7 @@ server <- function(input, output, session) {
         }
         return(result_list)
       }
-      
+
     }
     ## This function impute the missing landmark and fill the given dataset.
 
@@ -841,8 +841,8 @@ server <- function(input, output, session) {
       #results_df_string <- capture.output(print(results_df))
       #results_df_string <- paste( "#", results_df_string,sep = "")
       #results_df_string <- paste(results_df_string, collapse = "\n")
-      dir.create(file.path(my_file_path[1], "withScale_output"), showWarnings = FALSE)
-      file_con <- file(file.path(my_file_path[1], "withScale_output", file), open = "w")
+      dir.create(file.path(my_file_path[1],"output", "scaled"), showWarnings = FALSE)
+      file_con <- file(file.path(my_file_path[1], "scaled", file), open = "w")
 
 
       write.csv(df_new, file = file_con, row.names = FALSE)
@@ -1012,7 +1012,7 @@ server <- function(input, output, session) {
 
             for (file in files1) {
               suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path1,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
-              
+
               if (number_of_landmark != nrow(temp_data)){
                 shinyalert("Error!", "A file with no lines equal to the number of lines you provided has been detected.",type = 'error')
                 return()
@@ -1482,6 +1482,7 @@ server <- function(input, output, session) {
 
 
     coord <- tibble(x = xy_new$x, y = xy_new$y)
+
     if (length(images_path$data) == 0) {
       return()
     }
@@ -1501,17 +1502,19 @@ server <- function(input, output, session) {
         return()
       }
     }
+
     points_df <<- data.frame(x = as.numeric(xy_new$x), y = as.numeric(xy_new$y))
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
-
+    par(mar=c(1,1,1,1))
     plot(coord$x, coord$y, xlim = c(0, dim(img)[2]), ylim = c(0, dim(img)[1]), xlab = "X", ylab = "Y", xaxt = "n", yaxt = "n")
+
     axis(3, at = seq(0, dim(img)[2], by = 50))
     axis(2, at = seq(0, dim(img)[1], by = 50), las = 2)
 
     rasterImage(img, 0, 0, dim(img)[2], dim(img)[1])
     points(coord$x, coord$y, col = c("red"), cex = 2, pch = 20)
-
+    print(coord)
     if (is.null(xy_new$x)) {
       shinyalert("Oops!", "No click has been made yet.", type = "error")
       return()
@@ -1528,9 +1531,8 @@ server <- function(input, output, session) {
         dir.create("output")
       }
 
-      dir.create(file.path(my_file_path[1], "markedImage_output"), showWarnings = TRUE)
-      output_file <- file.path(my_file_path[1], "markedImage_output", paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name) - 1), ".png"))
-
+      dir.create(file.path(my_file_path[1], "markedImage"), showWarnings = TRUE)
+      output_file <- file.path(my_file_path[1], "markedImage", paste0("marked_",substring(file_name, 1, regexpr("\\.", file_name) - 1), ".png"))
       dev.copy(png, output_file, width = dim(img)[2], height = dim(img)[1])
       dev.off()
       shinyalert("Success!", paste("Image Output have been saved to", my_file_path[1], "folder."), type = "success")
