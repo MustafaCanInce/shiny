@@ -10,7 +10,6 @@ ui <- fluidPage(
     tags$script("
   $(document).ready(function() {
   var debounceTimeout;
-
   $(window).on('resize', function() {
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(function() {
@@ -20,7 +19,6 @@ ui <- fluidPage(
     }, 500);
   });
 });
-
 "),
     tags$style(
       HTML("
@@ -30,15 +28,12 @@ ui <- fluidPage(
         margin: 0.5vh;
         height: 4.5vh;
         }
-
           "),
       HTML(".inner_button {
         padding: 1%;
         margin: 0.5vh;
         height: 2.5vh;
     }
-
-
           "),
       HTML("
       #folder {
@@ -64,24 +59,41 @@ ui <- fluidPage(
            absolutePanel(
              align = "center",
              wellPanel(
-               fileInput(inputId = "image_file", label = NULL, multiple = TRUE, accept = c(".JPG", ".JPEG", ".PNG", ".TIF")),
+               fileInput(inputId = "image_file", label = NULL, multiple = TRUE, accept = c(".JPG", ".JPEG", ".PNG", ".TIF"),
+                         buttonLabel = "Upload"),
                verbatimTextOutput("file_names"),
                actionButton(
-                 icon = NULL, inputId = "help_button"      , width = "15vh", class = "all_action_button", label = "Help"),
+                 icon = NULL, inputId = "help_button"      , width = "15vh", class = "all_action_button", label = "Help",
+                 title = "Additional information"),
+
                actionButton(
-                 icon = NULL, inputId = "settings_id"      , width = "15vh", class = "all_action_button", label = "Settings"),
+                 icon = NULL, inputId = "settings_id"      , width = "15vh", class = "all_action_button", label = "Settings",
+                 title = "Change output directory and rater name."),
+
                actionButton(
-                 icon = NULL, inputId = "markings_Button"  , width = "15vh", class = "all_action_button", label = "Marking"),
+                 icon = NULL, inputId = "markings_Button"  , width = "15vh", class = "all_action_button", label = "Marking",
+                 title = "Navigate between images, view and remove markings, add missing values."),
+
                actionButton(
-                 icon = NULL, inputId = "show_scale_Button", width = "15vh", class = "all_action_button", label = "Scaling"),
+                 icon = NULL, inputId = "show_scale_Button", width = "15vh", class = "all_action_button", label = "Scaling",
+                 title = "Calibrate and measure distance between landmarks."),
+
                actionButton(
-                 icon = NULL, inputId = "show_inrel_Button", width = "15vh", class = "all_action_button", label = "Reliability"),
+                 icon = NULL, inputId = "show_inrel_Button", width = "15vh", class = "all_action_button", label = "Reliability",
+                 title = "Bu bir butondur."),
+
                actionButton(
-                 icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = "Imputation"),
+                 icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = "Imputation",
+                 title = "Impute missing landmarks."),
+
                actionButton(
-                 icon = NULL, inputId = "done_Button"      , width = "15vh", class = "all_action_button", label = "Save File"),
+                 icon = NULL, inputId = "done_Button"      , width = "15vh", class = "all_action_button", label = "Save File",
+                 title = "Get marked image and scaled/normal output."),
+
                actionButton(
-                 icon = NULL, inputId = "plots_button"     , width = "15vh", class = "all_action_button", label = "Plots"),
+                 icon = NULL, inputId = "plots_button"     , width = "15vh", class = "all_action_button", label = "Plots",
+                 title = "Draw scatterplot and/or heatmap.")
+
              ),
              top = "0vh", left = "0vh", width = "26vh"
            ),
@@ -91,7 +103,7 @@ ui <- fluidPage(
              wellPanel(
                HTML("<b>Imputation Settings</b>"),
                br(),
-               "L1 and L2 are anatomical reference landmarks. Please provide them.",
+               "L1 and L2 two reference landmarks. Please select prefered anatomical landmarks.",
                numericInput(inputId = "l1_input", label = "L-1:", value = "1"),
                numericInput(inputId = "l2_input", label = "L-2:", value = "2"),
                textInput(inputId = "imp_csv_input", label = "Csv file input file path:", value = "", placeholder = "Input csv folder path"),
@@ -106,26 +118,27 @@ ui <- fluidPage(
              top = "60vh", left = "0vh", width = "26vh"
            ),
 
-           known_distance <- 1,
+           #known_distance <- 1,
 
            absolutePanel(
              align = "center",
              wellPanel(
 
                HTML("<b>Scale Settings</b>"),
-               br(),
+               #hr(),
+               HTML("<p> </p>"),
 
                actionButton(inputId = "scale_cal_Button", label = "Calibrate", class = "inner_button", style = "line-height: 0.5vh;"),
                actionButton(inputId = "ratio_button", label = "Reset Calibration", class = "inner_button", style = "line-height: 0.5vh;"),
-               actionButton(inputId = "scale_meas_Button", label = "Measure", class = "inner_button", style = "line-height: 0.5vh;"),
-               actionButton(inputId = "del_last_meas", label = "Delete last measurement", class = "inner_button", style = "line-height: 0.5vh;"),
-               br(),
-               selectInput(inputId = "knowndistance_units_input", label = "Units of Length:", choices = c("cm","mm","m"), selected = "mm"),
-               numericInput(inputId = "knowndistance_input", label = "Referance Length:", value = known_distance),
+               actionButton(inputId = "scale_meas_Button", label = "Measure Distance", class = "inner_button", style = "line-height: 0.5vh;"),
+               tags$hr(style="border-color: black;"),
+               numericInput(inputId = "knowndistance_input", label = "Referance Length:", value = ""),
+               selectInput(inputId = "knowndistance_units_input", label = "Units of Length:", choices = c("mm", "cm", "m"), selected = "mm"),
                div(style = "display:flex; flex-direction: row; justify-content: center;",
                    actionButton(inputId = "save_scale_unit_dist_button", label = "Submit"),
                    actionButton(inputId = "close_scale_panel", label = "Close")
                )
+
              ),
              id = "scale_panel",
              style = "display: none;",
@@ -137,9 +150,19 @@ ui <- fluidPage(
              wellPanel(
                HTML("<b>Settings</b>"),
                br(),
-               shinyDirButton(id = "folder", label = "Select a Folder", title = "Please select a folder", FALSE),
+               shinyDirButton(id = "folder", label = "Select a Folder", title = "Please select a folder to save the output files.", FALSE),
                verbatimTextOutput(outputId = "filepath_text_print", placeholder = TRUE),
-               textInput(inputId = "name_input", label = "Rater Name:", value = "", placeholder = "Enter your name"),
+               tags$hr(style="border-color: black;"),
+               radioButtons(inputId = "rater_type", label = "Rater Type:",
+                            choices = c("Single Rater", "Multiple Raters"), selected = "Single Rater"),
+               conditionalPanel(condition = "input.rater_type == 'Single Rater'",
+                                textInput(inputId = "name_input", label = "Rater Name:", value = "", placeholder = "Enter your name"),
+                                textInput(inputId = "trial_input", label = "Trial:", value = "", placeholder = "Enter the trial value"),
+
+               ),
+               conditionalPanel(condition = "input.rater_type == 'Multiple Raters'",
+                                textInput(inputId = "name_input_mult", label = "Rater Name:", value = "", placeholder = "Enter your name")
+               ),
                div(style = "display:flex; flex-direction: row; justify-content: center;",
                    actionButton(inputId = "save_name_button", label = "Submit"),
                    actionButton(inputId = "close_settings_panel", label = "Close")
@@ -157,10 +180,6 @@ ui <- fluidPage(
                br(),
                fileInput("csv_input_plots_button", "Select csv files", multiple = TRUE, accept = ".csv"),
                radioButtons(inputId = "type_plo_radio_button" , label = "Plot Type", choices = c("Heatmap", "Scatter Plot")),
-               conditionalPanel(
-                 condition = "input.type_plo_radio_button == 'Scatter Plot'",
-                 radioButtons(inputId = "plot_settings_radio_button" , label = "Colored by", choices = c("Rater", "Landmark"))
-               ),
                actionButton(inputId = "draw_plot_button", label = "Submit"),
                actionButton(inputId = "close_plots_Button", label = "Close")
              ),
@@ -179,13 +198,13 @@ ui <- fluidPage(
                actionButton(
                  icon = NULL, inputId = "next_Button"      , label = "Next Image", class = "inner_button", style = "line-height: 0.5vh;"),
                actionButton(
-                 icon = NULL, inputId = "missing_Button"   , label = "Add Missing Landmark", class = "inner_button", style = "line-height: 0.5vh;"),
+                 icon = NULL, inputId = "missing_Button"   , label = "Add One Missing Landmark", class = "inner_button", style = "line-height: 0.5vh;"),
                br(),
                actionButton(
                  icon = NULL, inputId = "undo_Button"      , label = "Undo Last Landmark", class = "inner_button", style = "line-height: 0.5vh;"),
                br(),
                actionButton(
-                 icon = NULL, inputId = "clear_button"     , label = "Clear Landmarks", class = "inner_button", style = "line-height: 0.5vh;"),
+                 icon = NULL, inputId = "clear_button"     , label = "Clear All Landmarks", class = "inner_button", style = "line-height: 0.5vh;"),
                verbatimTextOutput(outputId = "info", placeholder = TRUE),
                verbatimTextOutput(outputId = "coords"),
                actionButton("close_markings_Button", "Close")
@@ -200,10 +219,9 @@ ui <- fluidPage(
              wellPanel(
                HTML("<b>Help</b>"),
                br(),
-               #tags$a(href = "https://ibb.co/V2xfG9m", "Flow Chart"),
-               #tags$img(src = "https://i.ibb.co/V2xfG9m/flow-chart.png"),
-               br(),
                tags$a(href = "https://youtu.be/tN3gev199Lw", "Video"),
+               br(),
+
                br(),
                actionButton("close_help_button", "Close")
              ),
@@ -235,12 +253,12 @@ ui <- fluidPage(
              align = "center",
              wellPanel(
                HTML("<b>Inter Rater Landmark Reliability</b>"),
-               br(),
-               numericInput(inputId = "rel_dimension_input", label = "Number of Dimension:", value = "1"),
-               numericInput(inputId = "rel_subject_input", label = "Number of Subject:", value = "2"),
-               numericInput(inputId = "rel_landmark_input", label = "Number of Landmark:", value = "3"),
-               textInput(inputId = "rel_path1_input", label = "Input file Path folder 1:", value = "", placeholder = "Please enter a file folder"),
-               textInput(inputId = "rel_path2_input", label = "Input file Path folder 2:", value = "", placeholder = "Please enter a file folder"),
+               HTML("<p> </p>"),
+               numericInput(inputId = "rel_dimension_input", label = "Number of Dimensions:", value = "2"),
+               numericInput(inputId = "rel_subject_input", label = "Number of Subjects:", value = "2"),
+               numericInput(inputId = "rel_landmark_input", label = "Number of Landmarks:", value = "3"),
+               textInput(inputId = "rel_path1_input", label = "First Markings Csv Directory:", value = "", placeholder = "Please enter a file folder"),
+               textInput(inputId = "rel_path2_input", label = "Second Markings Csv Directory:", value = "", placeholder = "Please enter a file folder"),
                actionButton(inputId = "rel_submit_button", label = "Submit"),
                actionButton("close_interrel_button", "Close")
              ),
