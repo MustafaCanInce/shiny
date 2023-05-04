@@ -41,7 +41,8 @@ ui <- fluidPage(
          border: 0.5px solid black;
       }
     ")
-    )
+    ),
+    setBackgroundColor("#FFFFFF")
   ),
 
   fluidRow(
@@ -49,7 +50,7 @@ ui <- fluidPage(
            # main panel
            div(
              id = "ui_div",
-             style = "display:inline",
+             style = "display:inline;",
              uiOutput(outputId = "plot.ui", style = "height: auto; width: auto; position: fixed; top: 0vh; left: 26vh;")
            ),
 
@@ -80,7 +81,7 @@ ui <- fluidPage(
 
                actionButton(
                  icon = NULL, inputId = "show_inrel_Button", width = "15vh", class = "all_action_button", label = "Reliability",
-                 title = "Bu bir butondur."),
+                 title = "Calculate intra/inter rater landmark reliability."),
 
                actionButton(
                  icon = NULL, inputId = "imputation_Button", width = "15vh", class = "all_action_button", label = "Imputation",
@@ -103,7 +104,7 @@ ui <- fluidPage(
              wellPanel(
                HTML("<b>Imputation Settings</b>"),
                br(),
-               "L1 and L2 two reference landmarks. Please select prefered anatomical landmarks.",
+               "L1 and L2 two reference landmarks. Please select prefered anatomical landmarks.The imputation is made using Bookstein coordinates.",
                numericInput(inputId = "l1_input", label = "L-1:", value = "1"),
                numericInput(inputId = "l2_input", label = "L-2:", value = "2"),
                textInput(inputId = "imp_csv_input", label = "Csv file input file path:", value = "", placeholder = "Input csv folder path"),
@@ -157,7 +158,7 @@ ui <- fluidPage(
                             choices = c("Single Rater", "Multiple Raters"), selected = "Single Rater"),
                conditionalPanel(condition = "input.rater_type == 'Single Rater'",
                                 textInput(inputId = "name_input", label = "Rater Name:", value = "", placeholder = "Enter your name"),
-                                textInput(inputId = "trial_input", label = "Trial:", value = "", placeholder = "Enter the trial value"),
+                                textInput(inputId = "trial_input", label = "Trial:", value = "", placeholder = "Enter the trial number"),
 
                ),
                conditionalPanel(condition = "input.rater_type == 'Multiple Raters'",
@@ -221,7 +222,7 @@ ui <- fluidPage(
                br(),
                tags$a(href = "https://youtu.be/tN3gev199Lw", "Video"),
                br(),
-
+               a(href = "mailto:trylater@gmail.com?subject=shiny&body=", "Send an email."),
                br(),
                actionButton("close_help_button", "Close")
              ),

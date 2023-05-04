@@ -13,7 +13,6 @@ server <- function(input, output, session) {
   loaded <<- FALSE
   dfs <<- list()
 
-
   observeEvent(input$plots_button, {
     shinyjs::show("plot_div")
     shinyjs::hide("ui_div")
@@ -155,7 +154,8 @@ server <- function(input, output, session) {
 
         scatterPlot <- ggplot(dataframe_name, aes(x, y)) +
           geom_point(aes(shape=factor(raters), color=factor(landmark)))+
-          labs(shape="Rater ID", colour="Landmark Index", title="Landmark Scatter Plot")
+          labs(shape="Rater ID", colour="Landmark Index", title="Landmark Scatter Plot")+
+          scale_colour_manual(values=as.vector(polychrome(nrow(dataframe_name))))
         output$plot <- renderPlot({
           print(scatterPlot)
         })
@@ -443,6 +443,18 @@ server <- function(input, output, session) {
         i <- i + 1
       }
 
+      if(imp_method == 'em'){
+        em_nli <- 0
+        null<-data.frame(matrix(nrow = 1,ncol = 2))
+        without_null <-  null_image_data[-nli,]
+        if((nr-1) %%2== 0 ){
+          null_image_data <- insertRow(null_image_data,null,((nr/2)-1))
+          em_nli <-((nr/2)-1)
+        }else {
+          null_image_data <-insertRow(without_null,null,(nr/2))
+          em_nli <- (nr/2)
+        }
+      }
 
       #Adding null data to the beginning of the list
 
@@ -643,7 +655,7 @@ server <- function(input, output, session) {
         j = 1
         new_x_list <- list()
         while (j <= nf) { #1--5
-          i = nli #7
+          i = em_nli #7
           while (i <= k) { # 7--9
             aa <- em_data[i,1,j]
             new_x_list <- append(new_x_list,aa)
@@ -656,7 +668,7 @@ server <- function(input, output, session) {
         j = 1
         new_y_list <- list()
         while (j <= nf) {
-          i = nli
+          i = em_nli
           while (i <= k) {
             bb <- em_data[i,2,j]
             new_y_list <- append(new_y_list,bb)
@@ -739,6 +751,13 @@ server <- function(input, output, session) {
       }
       return(FALSE)
     }
+
+    insertRow <- function(existingDF, newrow, r) {
+      existingDF[seq(r+1,nrow(existingDF)+1),] <- existingDF[seq(r,nrow(existingDF)),]
+      existingDF[r,] <- newrow
+      existingDF
+    }
+
     remove_modal_progress()
     result <- impute.multiple.missing(file_path,l1,l2,imp_method = imp_method)
     if (!is.null(result)) {
@@ -900,7 +919,7 @@ server <- function(input, output, session) {
 
 
       write.csv(df_new, file = file_con, row.names = FALSE)
-      writeLines(c("# Measurement Length ", paste0("#", ratio)), file_con)
+      writeLines(c("# Measurement Length (according pixel) ", paste0("#", ratio)), file_con)
       scale_facc <- 1/ratio
       writeLines(c("# Scale factor (Referance Length / Measurement Length) ", paste0("#", scale_facc)), file_con)
       writeLines(paste0("# Referance Length: ", input$knowndistance_input), file_con)
@@ -1480,7 +1499,7 @@ server <- function(input, output, session) {
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
 
-    plot(coord$x, coord$y, xlim = c(0, dim(img)[2]), ylim = c(0, dim(img)[1]), xlab = "X", ylab = "Y", xaxt = "n", yaxt = "n")
+    plot(coord$x, coord$y, xlim = c(0, dim(img)[2]), ylim = c(0, dim(img)[1]), xlab = "X", ylab = "Y", xaxt = "n", yaxt = "n", bty = "n")
     axis(3, at = seq(0, dim(img)[2], by = 50))
     axis(2, at = seq(0, dim(img)[1], by = 50), las = 2)
 
@@ -1493,7 +1512,7 @@ server <- function(input, output, session) {
       }
     }
 
-  })
+  }, bg = "#979dbd")
   observeEvent(input$save_img_Button, {
 
 
