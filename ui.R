@@ -107,7 +107,7 @@ ui <- fluidPage(
                "L1 and L2 two reference landmarks. Please select prefered anatomical landmarks.The imputation is made using Bookstein coordinates.",
                numericInput(inputId = "l1_input", label = "L-1:", value = "1"),
                numericInput(inputId = "l2_input", label = "L-2:", value = "2"),
-               textInput(inputId = "imp_csv_input", label = "Csv file input file path:", value = "", placeholder = "Input csv folder path"),
+               fileInput("imp_file_input", label = "Select Csv File(s):", multiple = TRUE, accept = ".csv"),
                radioButtons(inputId = "imp_radio_button" , label = "Imputation Method:", choices = c("minF Method", "Multiple Regression Method", "Expected Maximization Method")),
                div(style = "display:flex; flex-direction: row; justify-content: center;",
                    actionButton(inputId = "calculate_imp", label = "Submit"),
@@ -179,7 +179,8 @@ ui <- fluidPage(
              wellPanel(
                HTML("<b>Plots</b>"),
                br(),
-               fileInput("csv_input_plots_button", "Select csv files", multiple = TRUE, accept = ".csv"),
+               fileInput("plot_file1_input", label = "Select First Rater's Csv File(s):", multiple = TRUE, accept = ".csv"),
+               fileInput("plot_file2_input", label = "Select Second Rater's Csv File(s):", multiple = TRUE, accept = ".csv"),
                radioButtons(inputId = "type_plo_radio_button" , label = "Plot Type", choices = c("Heatmap", "Scatter Plot")),
                actionButton(inputId = "draw_plot_button", label = "Submit"),
                actionButton(inputId = "close_plots_Button", label = "Close")
@@ -258,8 +259,8 @@ ui <- fluidPage(
                numericInput(inputId = "rel_dimension_input", label = "Number of Dimensions:", value = "2"),
                numericInput(inputId = "rel_subject_input", label = "Number of Subjects:", value = "2"),
                numericInput(inputId = "rel_landmark_input", label = "Number of Landmarks:", value = "3"),
-               textInput(inputId = "rel_path1_input", label = "First Markings Csv Directory:", value = "", placeholder = "Please enter a file folder"),
-               textInput(inputId = "rel_path2_input", label = "Second Markings Csv Directory:", value = "", placeholder = "Please enter a file folder"),
+               fileInput("rel_file1_input", label = "Select Csv File(s):", multiple = TRUE, accept = ".csv"),
+               fileInput("rel_file2_input", label = "Select Csv File(s):", multiple = TRUE, accept = ".csv"),
                actionButton(inputId = "rel_submit_button", label = "Submit"),
                actionButton("close_interrel_button", "Close")
              ),

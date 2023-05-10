@@ -11,7 +11,8 @@ server <- function(input, output, session) {
   l2 <- 2
   my_file_path <- list(getwd(),"")
   loaded <<- FALSE
-  dfs <<- list()
+  dfs_1 <<- list()
+  dfs_2 <<- list()
 
   observeEvent(input$plots_button, {
     shinyjs::show("plot_div")
@@ -86,84 +87,114 @@ server <- function(input, output, session) {
     cat(my_file_path[1])
   })
 
-  observeEvent(input$csv_input_plots_button, {
-    dfs <<- list()
-    for (i in seq_along(input$csv_input_plots_button$name)) {
-      if (endsWith(input$csv_input_plots_button$name[i], ".csv")) {
-        dfs[[i]] <<- read.csv(input$csv_input_plots_button$datapath[i], comment.char = '#')
-      } else{
-        shinyalert("Warning!", "Only csv files are accepted. Please upload csv files.", type = "warning")
-        return()
-      }
-    }
+  parent.path <- function(path_list){
+    parent_file <- paste(strsplit(path_list[1],"/")[[1]][1],strsplit(path_list[1],"/")[[1]][2],sep = "/")
+    parent_file
+  }
 
-    if (length(dfs) == 2) {
+  observeEvent(input$plot_file1_input, {
+    dfs_1 <<- list()
+    print(input$plot_file1_input$datapath)
+
+    datamy <- (input$plot_file1_input$datapath)
+    #datamy <- (strsplit(datamy, "/")[1])
+    print(input$plot_file1_input$name)
+
+
+    print(parent.path(datamy))
+
+    for (i in seq_along(input$plot_file1_input$name)) {
+      dfs_1[[i]] <<- read.csv(input$plot_file1_input$datapath[i], comment.char = '#')
+    }
+    loaded <<- FALSE
+    if ((length(dfs_2) != 0) && length(dfs_2)==length(dfs_1)) {
       loaded <<- TRUE
-    } else {
-      shinyalert("Warning!", "Please upload two .csv files with data in them.", type = "warning")
     }
+  })
 
+  observeEvent(input$plot_file2_input, {
+    dfs_2 <<- list()
+    for (i in seq_along(input$plot_file2_input$name)) {
+      dfs_2[[i]] <<- read.csv(input$plot_file2_input$datapath[i], comment.char = '#')
+    }
+    loaded <<- FALSE
+    if ((length(dfs_1) != 0) && length(dfs_2)==length(dfs_1)) {
+      loaded <<- TRUE
+    }
   })
 
 
   observeEvent(input$draw_plot_button, {
     if (loaded) {
       if (input$type_plo_radio_button == "Heatmap") {
-        dataframe_name <- setNames(data.frame(matrix(ncol = 4, nrow = 0)),
-                                   c("x", "y", "raters", "landmark"))
-        rater_count = 1
-        for (dataframe_i in dfs) {
-          dataframe_i$raters <- rater_count
-          dataframe_i$landmark <- seq_len(nrow(dataframe_i))
-          dataframe_name <- rbind(dataframe_name, dataframe_i)
-          rater_count = rater_count + 1
-        }
-        euclidean_distances <- data.frame(landmarks_rater1 = c(), landmarks_rater2 = c(), distance = c())
-        for (i in 1:nrow(dataframe_name)) {
-          for (j in 1:nrow(dataframe_name)) {
-            if (dataframe_name$raters[i] != dataframe_name$raters[j]) {
-              euclidean_distances <- rbind(euclidean_distances, data.frame(landmarks_rater1 = dataframe_name$landmark[i], landmarks_rater2 = dataframe_name$landmark[j], distance_in_pixels = sqrt((dataframe_name$x[i] - dataframe_name$x[j])^2 + (dataframe_name$y[i] - dataframe_name$y[j])^2)))
+        if (length(dfs_1)==1){
+          dataframe_name <- setNames(data.frame(matrix(ncol = 4, nrow = 0)),
+                                     c("x", "y", "raters", "landmark"))
+          temp1 <- dfs_1[[1]]
+          temp1$raters   <- 1
+          temp1$landmark <- seq_len(nrow(temp1))
+          dataframe_name <- rbind(dataframe_name, temp1)
+
+          temp2 <- dfs_2[[1]]
+          temp2$raters   <- 2
+          temp2$landmark <- seq_len(nrow(temp2))
+          dataframe_name <- rbind(dataframe_name, temp2)
+
+
+          euclidean_distances <- data.frame(landmarks_rater1 = c(), landmarks_rater2 = c(), distance = c())
+          for (i in 1:nrow(dataframe_name)) {
+            for (j in 1:nrow(dataframe_name)) {
+              if (dataframe_name$raters[i] != dataframe_name$raters[j]) {
+                euclidean_distances <- rbind(euclidean_distances, data.frame(landmarks_rater1 = dataframe_name$landmark[i], landmarks_rater2 = dataframe_name$landmark[j], distance_in_pixels = sqrt((dataframe_name$x[i] - dataframe_name$x[j])^2 + (dataframe_name$y[i] - dataframe_name$y[j])^2)))
+              }
             }
           }
+          euclidean_distances$landmarks_rater1 <- factor(euclidean_distances$landmarks_rater1)
+          euclidean_distances$landmarks_rater2 <- factor(euclidean_distances$landmarks_rater2)
+          rater_heatmap <- ggplot(euclidean_distances, aes(landmarks_rater1, landmarks_rater2)) +
+            geom_tile(aes(fill = distance_in_pixels)) +
+            scale_fill_gradient(low = "white", high = "red") +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+            labs(fill="Distance",
+                 title = "Euclidean Distance Heat Map",
+                 x = "Landmarks Rater 1",
+                 y = "Landmarks Rater 2")
+          output$plot <- renderPlot({
+            print(rater_heatmap)
+          })
+        }else{
+          shinyalert("Warning!", "Heatmap works with only one .csv file for both raters.", type = "warning")
         }
-        euclidean_distances$landmarks_rater1 <- factor(euclidean_distances$landmarks_rater1)
-        euclidean_distances$landmarks_rater2 <- factor(euclidean_distances$landmarks_rater2)
-        rater_heatmap <- ggplot(euclidean_distances, aes(landmarks_rater1, landmarks_rater2)) +
-          geom_tile(aes(fill = distance_in_pixels)) +
-          scale_fill_gradient(low = "white", high = "red") +
-          theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-          labs(fill="Distance",
-               title = "Euclidean Distance Heat Map",
-               x = "Landmarks Rater 1",
-               y = "Landmarks Rater 2")
-        output$plot <- renderPlot({
-          print(rater_heatmap)
-        })
       }
-      else{
+      else if (input$type_plo_radio_button == "Scatter Plot"){
         dataframe_name <- setNames(data.frame(matrix(ncol = 4, nrow = 0)),
                                    c("x", "y", "raters", "landmark"))
 
-        rater_count = 1
-        for (dataframe_i in dfs) {
-          dataframe_i$raters <- rater_count
+        rater_idx = 1
+
+        for (dataframe_i in dfs_1){
+          dataframe_i$rater <- rater_idx
           dataframe_i$landmark <- seq_len(nrow(dataframe_i))
           dataframe_name <- rbind(dataframe_name, dataframe_i)
-          rater_count = rater_count + 1
+        }
+        rater_idx = rater_idx + 1
+        for (dataframe_i in dfs_2){
+          dataframe_i$rater <- rater_idx
+          dataframe_i$landmark <- seq_len(nrow(dataframe_i))
+          dataframe_name <- rbind(dataframe_name, dataframe_i)
         }
 
         scatterPlot <- ggplot(dataframe_name, aes(x, y)) +
-          geom_point(aes(shape=factor(raters), color=factor(landmark)))+
+          geom_point(aes(shape=factor(rater), color=factor(landmark)),size=3)+
           labs(shape="Rater ID", colour="Landmark Index", title="Landmark Scatter Plot")+
-          scale_colour_manual(values=as.vector(polychrome(nrow(dataframe_name))))
+          scale_colour_manual(values=as.vector(polychrome(dataframe_name$landmark[nrow(dataframe_name)])))
         output$plot <- renderPlot({
           print(scatterPlot)
         })
       }
     }else{
-      shinyalert("Warning!", "Please upload two .csv files with data in them.", type = "warning")
+      shinyalert("Warning!", "Please upload same number of .csv files for both raters.", type = "warning")
     }
-
   })
 
   output$file_names <- renderText({
@@ -218,13 +249,14 @@ server <- function(input, output, session) {
 
       )
     }
-    file_path <- input$imp_csv_input
+
+    file_path <- parent.path(input$imp_file_input$datapath)
     files <- list.files(file_path, pattern = '.csv')
     if (is.null(input$imp_csv_input) || input$imp_csv_input == "") {
       shinyalert("Warning!", "imp_csv_input cannot be empty.", type = "warning")
       return()
     } else if (!file.exists(input$imp_csv_input)) {
-      shinyalert("Warning!", "Invalid data path: rel_path1_input", type = "error")
+      shinyalert("Warning!", "Invalid data path!", type = "error")
       return()
     }
 
@@ -254,7 +286,7 @@ server <- function(input, output, session) {
     ## File path : The current working directory that should include all csv files.
     ## l1,l2 : The reference anatomic landmarks
     ## We should give an error if the user did not specify the l1 l2
-    impute.multiple.missing <- function(file_path,l1,l2,imp_method){
+    impute.multiple.missing <- function(file_path,impute_files,l1,l2,imp_method){
 
       ####check file path is exist
       if (!file.exists(file_path)) {
@@ -263,10 +295,10 @@ server <- function(input, output, session) {
       }
 
 
-      files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
+      #files <-  list.files(file_path,pattern = '.csv') ##Get all csv files into a list.
       ####check file path is empty
-      if(length(files) == 0){
-        shinyalert("Error!", "Invalid data path: rel_path1_input", type = "error")
+      if(length(impute_files) == 0){
+        shinyalert("Error!", "Invalid data path!", type = "error")
         return()
       }
 
@@ -274,7 +306,7 @@ server <- function(input, output, session) {
       na_number <- how.many.na.file(landmark_list)
       null_file_name <- vector(mode = 'list',length = as.numeric(na_number[1]))
       i <- 1
-      for (file in files) {
+      for (file in impute_files) {
         suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
         if(this.file.has.na(temp_data)){
           null_file_name[[i]] <- file
@@ -350,11 +382,11 @@ server <- function(input, output, session) {
       return(c(null_number,lapply(list(as.numeric(indice_list)),sort,decreasing = TRUE)))
     }
 
-    turn.to.df.list <- function(file_path){
-      files <-  list.files(file_path , pattern = '.csv')
-      df_list <- vector(mode = 'list',length = length(files))
+    turn.to.df.list <- function(file_path,turn_files){
+      #files <-  list.files(file_path , pattern = '.csv')
+      df_list <- vector(mode = 'list',length = length(turn_files))
       i <- 1
-      for (file in files) {
+      for (file in turn_files) {
         suppressWarnings(temp_data <- as.data.frame(read.csv(paste(file_path,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
         df_list[[i]] <- temp_data
         i <- i + 1
@@ -1023,8 +1055,12 @@ server <- function(input, output, session) {
     number_of_dimension <- input$rel_dimension_input
     number_of_subject <- input$rel_subject_input
     number_of_landmark <- input$rel_landmark_input
-    path1 <- input$rel_path1_input
-    path2 <- input$rel_path2_input
+
+    path1 <-  parent.path(input$rel_file1_input$datapath)
+    path2 <-  parent.path(input$rel_file2_input$datapath)
+    print("reliability path1 and path2;")
+    print(path1)
+    print(path2)
     if (is.na(number_of_dimension) || number_of_dimension == "") {
       shinyalert("Warning!", "rel_dimension_input cannot be empty.", type = "warning")
       return()
@@ -1054,19 +1090,19 @@ server <- function(input, output, session) {
         return()
       }
 
-      reliability_IR <- function(number_of_dimension,number_of_subject,number_of_landmark,path1,path2) {
-        files1 <-  list.files(path1,pattern = '.csv')
-        files2 <-  list.files(path2,pattern = '.csv')
+      reliability_IR <- function(number_of_dimension, number_of_subject, number_of_landmark, path1, path2, rel_files1, rel_files2) {
+        #files1 <-  list.files(path1,pattern = '.csv')
+        #files2 <-  list.files(path2,pattern = '.csv')
 
         if (number_of_dimension < 2) {
           shinyalert("Error!","Number of dimension is too small please provide at least 2 dimension",type = 'error')
           return()
         }
-        if (length(files1) != number_of_subject |  length(files2) != number_of_subject) {
+        if (length(rel_files1) != number_of_subject |  length(rel_files2) != number_of_subject) {
           shinyalert("Error!", "The number of subjects you provided does not match the number of subjects actually obtained", type = "error")
           return()
         }
-        else if (length(files1) != length(files2)) {
+        else if (length(rel_files1) != length(rel_files2)) {
           shinyalert("Error!", "Please provide equal number of subject", type = "error")
           return()
         }
@@ -1074,7 +1110,7 @@ server <- function(input, output, session) {
         rater_1_landmarks <- setNames(data.frame(matrix(ncol = 2, nrow = 0)),
                                       c("x", "y"))
 
-        for (file in files1) {
+        for (file in rel_files1) {
           suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path1,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
 
           if (number_of_landmark != nrow(temp_data)) {
@@ -1094,7 +1130,7 @@ server <- function(input, output, session) {
                                       c("x", "y"))
 
 
-        for (file in files2) {
+        for (file in rel_files2) {
           suppressWarnings(temp_data <- as.data.frame(read.csv(paste(path2,file,sep = "/"),header = TRUE,sep = ",",comment.char = "#")))
           if (number_of_landmark != nrow(temp_data)) {
             shinyalert("Error!", "A file with no lines equal to the number of lines you provided has been detected.",type = 'error')
@@ -1336,7 +1372,7 @@ server <- function(input, output, session) {
 
 
       }
-      reliability_IR(number_of_dimension,number_of_subject,number_of_landmark,path1,path2)
+      reliability_IR(number_of_dimension,number_of_subject,number_of_landmark,path1,path2, rel_files1, rel_files2)
 
     }
 
