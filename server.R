@@ -14,6 +14,9 @@ server <- function(input, output, session) {
   dfs_1 <<- list()
   dfs_2 <<- list()
 
+
+
+
   observeEvent(input$plots_button, {
     shinyjs::show("plot_div")
     shinyjs::hide("ui_div")
@@ -37,7 +40,7 @@ server <- function(input, output, session) {
   })
 
   panel_names <- c("imputation_panel", "marking_panel", "done_panel", "inter_reliability_panel",
-                   "settings_panel", "scale_panel", "help_panel", "plots_panel")
+                   "settings_panel", "scale_panel", "help_panel", "plots_panel", "upload_panel")
 
   show_hide_panels <- function(show_panel) {
     for (panel_name in panel_names) {
@@ -207,13 +210,14 @@ server <- function(input, output, session) {
       file_names <- gsub("\\\\", "/", file_names)
       file_names <- gsub(" ", "", file_names)
       file_names_list <<- strsplit(file_names, " ")
+
       file_names_only <- sapply(file_names_list, `[`, 1)
       return(paste(file_names_only, collapse = "/"))
     }
   })
 
 
-
+  observeEvent(input$upl_button, { show_hide_panels("upload_panel") })
   observeEvent(input$imputation_Button, { show_hide_panels("imputation_panel") })
   observeEvent(input$markings_Button, { show_hide_panels("marking_panel") })
   observeEvent(input$done_Button, { show_hide_panels("done_panel") })
@@ -223,6 +227,7 @@ server <- function(input, output, session) {
   observeEvent(input$plots_button, { show_hide_panels("plots_panel") })
   observeEvent(input$show_inrel_Button, { show_hide_panels("inter_reliability_panel") })
 
+  observeEvent(input$close_upl_button, { shinyjs::hide("upload_panel") })
   observeEvent(input$close_imp_panel, { shinyjs::hide("imputation_panel") })
   observeEvent(input$close_markings_Button, { shinyjs::hide("marking_panel") })
   observeEvent(input$close_donepanel_Button, { shinyjs::hide("done_panel") })
@@ -234,6 +239,150 @@ server <- function(input, output, session) {
 
 
 
+
+
+
+
+  output$table <- renderDT(
+    data.frame(Image_Name = input$image_file$name),
+    options = list(
+      lengthMenu = c(5, 10, 25),
+      pageLength = 5,
+      searching = TRUE,
+      ordering = TRUE,
+      scrollX = FALSE,
+      autoWidth = TRUE
+    )
+  )
+
+  observeEvent(input$delete_image, {
+    print(length(images_path$data) )
+    if(length(images_path$data) == 0){
+      shinyalert("Warning!", "There is no Image that's been uploaded.",type = "warning")
+      return()
+    }
+    # get the index of the selected row
+    row_index <- input$table_rows_selected
+
+    # remove the selected image from the list of images
+
+      images_path$data <- images_path$data[-row_index]
+
+      image_names$data <- image_names$data[-row_index]
+
+    #print("sadasd")
+    #print(input$image_file$data)
+
+
+
+    #new_data_frame <<- data.frame("Image_Name"  = c("5"))
+    #colnames(temp_imagedata) <- c("Image_Name")
+    #print("col sayısı")
+    #print(ncol(temp_imagedata))
+
+
+
+    print(typeof(temp_imagedata))
+    print(class(temp_imagedata))
+    new_data_frame <- data.frame(temp_imagedata[- row_index,])
+
+    temp_imagedata <<-  data.frame(temp_imagedata[- row_index,])
+
+    print(new_data_frame)
+    print(ncol(new_data_frame))
+    #print(t(new_data_frame))
+    #for (i in 1:nrow(temp_imagedata)) {
+#
+#
+    #  for(j in 1:length(row_index)){
+    #    #print(row_index[j] == i)
+    #    #print(paste("row index",row_index[j]))
+    #    #print(paste("temp_imagedata",i))
+    #    if(row_index[j] == i){
+    #      temp_imagedata <<- temp_imagedata[-i,]
+    #      new_data_frame <<- rbind(new_data_frame, temp_imagedata)
+    #    }
+    #  }
+    #}
+    #print("sorna")
+    #print(ncol(new_data_frame))
+    row.names(new_data_frame) <- seq_len(nrow(new_data_frame))
+    colnames(new_data_frame) <- c("Image_Name")
+    print(new_data_frame)
+    #new_data_frame <<- new_data_frame[-1,]
+    #print(new_data_frame)
+
+
+    output$table <- renderDT(
+
+      #data.frame(Image_Name = input$image_file$name),
+      new_data_frame,
+
+      options = list(
+        lengthMenu = c(5, 10, 25),
+        pageLength = 5,
+        searching = TRUE,
+        ordering = TRUE,
+        scrollX = FALSE,
+        autoWidth = TRUE
+      )
+    )
+
+    # update the index if necessary
+    if (index$current > length(images_path$data)) {
+      index$current <<- length(images_path$data)
+    }
+
+
+  })
+
+  images_path <- reactiveValues(data = list())
+  image_names <- reactiveValues(data = list())
+
+  observeEvent(input$image_file, {
+    images_path$data <- input$image_file$datapath
+    image_names$data <<- lapply(input$image_file$name, basename)
+
+    temp_imagedata <<- data.frame(t(as.data.frame(image_names$data)))
+    #print(class(temp_imagedata))
+    #rownames(temp_imagedata) <- seq_len(nrow(temp_imagedata))
+
+    xy_new$x <- numeric(0)
+    xy_new$y <- numeric(0)
+    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
+    ratio <<- 0
+    index$current <<- 1
+
+
+  })
+
+  index <- reactiveValues(current = 1)
+
+  observeEvent(input$next_Button, {
+    xy_new$x <- numeric(0)
+    xy_new$y <- numeric(0)
+    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
+    if (index$current < length(images_path$data)) {
+      index$current <<- index$current + 1
+      ratio <<- 0
+    }
+    else {
+      shinyalert("Oops!", "This is the last image.", type = "error")
+    }
+  })
+
+  observeEvent(input$prev_Button, {
+    xy_new$x <- numeric(0)
+    xy_new$y <- numeric(0)
+    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
+    if (index$current > 1) {
+      index$current <<- index$current - 1
+      ratio <<- 0
+    }
+    else {
+      shinyalert("Oops!", "This is the first image.", type = "error")
+    }
+  })
 
 
 
@@ -252,17 +401,11 @@ server <- function(input, output, session) {
 
     file_path <- parent.path(input$imp_file_input$datapath)
     files <- list.files(file_path, pattern = '.csv')
-    if (is.null(input$imp_csv_input) || input$imp_csv_input == "") {
-      shinyalert("Warning!", "imp_csv_input cannot be empty.", type = "warning")
-      return()
-    } else if (!file.exists(input$imp_csv_input)) {
-      shinyalert("Warning!", "Invalid data path!", type = "error")
-      return()
-    }
+    print(file_path)
+    print(files)
 
 
-    else {
-      # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
+     # If both fields have been filled, save their values to the global variables 'l1' and 'l2'
       if (input$imp_radio_button == "minF Method") {
         imp_method <<- "minf"
       }
@@ -275,7 +418,7 @@ server <- function(input, output, session) {
       l1 <<- input$l1_input
       l2 <<- input$l2_input
 
-    }
+
 
     show_modal_progress_line()
     ## File path : The current working directory that should include all csv files.
@@ -791,7 +934,7 @@ server <- function(input, output, session) {
     }
 
     remove_modal_progress()
-    result <- impute.multiple.missing(file_path,l1,l2,imp_method = imp_method)
+    result <- impute.multiple.missing(file_path,files,l1,l2,imp_method = imp_method)
     if (!is.null(result)) {
 
 
@@ -1058,38 +1201,40 @@ server <- function(input, output, session) {
 
     path1 <-  parent.path(input$rel_file1_input$datapath)
     path2 <-  parent.path(input$rel_file2_input$datapath)
+    rel_files1 <- list.files(path1, pattern = '.csv')
+    rel_files2 <- list.files(path2, pattern = '.csv')
     print("reliability path1 and path2;")
     print(path1)
     print(path2)
-    if (is.na(number_of_dimension) || number_of_dimension == "") {
-      shinyalert("Warning!", "rel_dimension_input cannot be empty.", type = "warning")
-      return()
-    } else if (is.na(number_of_subject) || number_of_subject == "") {
-      shinyalert("Warning!", "rel_subject_input cannot be empty.", type = "warning")
-      return()
-    } else if (is.na(number_of_landmark) || number_of_landmark == "") {
-      shinyalert("Warning!", "rel_landmark_input cannot be empty.", type = "warning")
-      return()
-    } else if (is.null(path1) || path1 == "") {
-      shinyalert("Warning!", "rel_path1_input cannot be empty.", type = "warning")
-      return()
-    } else if (is.null(path2) || path2 == "") {
-      shinyalert("Warning!", "rel_path2_input cannot be empty.", type = "warning")
-      return()
-    } else if (!file.exists(path1)) {
-      shinyalert("Warning!", "Invalid data path: rel_path1_input", type = "error")
-      return()
-    } else if (!file.exists(path2)) {
-      shinyalert("Warning!", "Invalid data path: rel_path2_input", type = "error")
-      return()
-    } else {
+   # if (is.na(number_of_dimension) || number_of_dimension == "") {
+   #   shinyalert("Warning!", "rel_dimension_input cannot be empty.", type = "warning")
+   #   return()
+   # } else if (is.na(number_of_subject) || number_of_subject == "") {
+   #   shinyalert("Warning!", "rel_subject_input cannot be empty.", type = "warning")
+   #   return()
+   # } else if (is.na(number_of_landmark) || number_of_landmark == "") {
+   #   shinyalert("Warning!", "rel_landmark_input cannot be empty.", type = "warning")
+   #   return()
+   # } else if (is.null(path1) || path1 == "") {
+   #   shinyalert("Warning!", "rel_path1_input cannot be empty.", type = "warning")
+   #   return()
+   # } else if (is.null(path2) || path2 == "") {
+   #   shinyalert("Warning!", "rel_path2_input cannot be empty.", type = "warning")
+   #   return()
+   # } else if (!file.exists(path1)) {
+   #   shinyalert("Warning!", "Invalid data path: rel_path1_input", type = "error")
+   #   return()
+   # } else if (!file.exists(path2)) {
+   #   shinyalert("Warning!", "Invalid data path: rel_path2_input", type = "error")
+   #   return()
+   # } else {
+   #
+   #   if (path1_csv_count != path2_csv_count) {
+   #     shinyalert("Warning!", "The number of CSV files in rel_path1_input and rel_path2_input must be equal.", type = "warning")
+   #     return()
+   #   }
       path1_csv_count <- length(list.files(path1, pattern = ".csv$"))
       path2_csv_count <- length(list.files(path2, pattern = ".csv$"))
-      if (path1_csv_count != path2_csv_count) {
-        shinyalert("Warning!", "The number of CSV files in rel_path1_input and rel_path2_input must be equal.", type = "warning")
-        return()
-      }
-
       reliability_IR <- function(number_of_dimension, number_of_subject, number_of_landmark, path1, path2, rel_files1, rel_files2) {
         #files1 <-  list.files(path1,pattern = '.csv')
         #files2 <-  list.files(path2,pattern = '.csv')
@@ -1374,51 +1519,14 @@ server <- function(input, output, session) {
       }
       reliability_IR(number_of_dimension,number_of_subject,number_of_landmark,path1,path2, rel_files1, rel_files2)
 
-    }
+
 
   })
 
 
-  images_path <- reactiveValues(data = list())
-  image_names <- reactiveValues(data = list())
 
-  observeEvent(input$image_file, {
-    images_path$data <- input$image_file$datapath
-    image_names$data <- lapply(input$image_file$datapath, basename)
-    xy_new$x <- numeric(0)
-    xy_new$y <- numeric(0)
-    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
-    ratio <<- 0
-    index$current <<- 1
-  })
 
-  index <- reactiveValues(current = 1)
 
-  observeEvent(input$next_Button, {
-    xy_new$x <- numeric(0)
-    xy_new$y <- numeric(0)
-    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
-    if (index$current < length(images_path$data)) {
-      index$current <<- index$current + 1
-      ratio <<- 0
-    }
-    else {
-      shinyalert("Oops!", "This is the last image.", type = "error")
-    }
-  })
-
-  observeEvent(input$prev_Button, {
-    xy_new$x <- numeric(0)
-    xy_new$y <- numeric(0)
-    results_df <<- data.frame(distance_between_two_landmarks = numeric(), unitsofmetric = character())
-    if (index$current > 1) {
-      index$current <<- index$current - 1
-      ratio <<- 0
-    }
-    else {
-      shinyalert("Oops!", "This is the first image.", type = "error")
-    }
-  })
 
   options(shiny.maxRequestSize = 100*1024^2)
 
@@ -1535,7 +1643,7 @@ server <- function(input, output, session) {
     coordinates <- c(as.numeric(xy_new$x),as.numeric(xy_new$y))
     point <- rbind(point, coordinates)
 
-    plot(coord$x, coord$y, xlim = c(0, dim(img)[2]), ylim = c(0, dim(img)[1]), xlab = "X", ylab = "Y", xaxt = "n", yaxt = "n", bty = "n")
+    plot(coord$x, coord$y, xlim = c(1, dim(img)[2]), ylim = c(1, dim(img)[1]), xlab = "X", ylab = "Y", xaxt = "n", yaxt = "n", bty = "n")
     axis(3, at = seq(0, dim(img)[2], by = 50))
     axis(2, at = seq(0, dim(img)[1], by = 50), las = 2)
 

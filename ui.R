@@ -60,9 +60,9 @@ ui <- fluidPage(
            absolutePanel(
              align = "center",
              wellPanel(
-               fileInput(inputId = "image_file", label = NULL, multiple = TRUE, accept = c(".JPG", ".JPEG", ".PNG", ".TIF"),
-                         buttonLabel = "Upload"),
-               verbatimTextOutput("file_names"),
+               actionButton(
+                 icon = NULL, inputId = "upl_button"      , width = "15vh", class = "all_action_button", label = "Upload Image(s)",
+                 title = "Upload Image"),
                actionButton(
                  icon = NULL, inputId = "help_button"      , width = "15vh", class = "all_action_button", label = "Help",
                  title = "Additional information"),
@@ -98,6 +98,29 @@ ui <- fluidPage(
              ),
              top = "0vh", left = "0vh", width = "26vh"
            ),
+
+           absolutePanel(
+             align = "center",
+             wellPanel(
+               HTML("<b>Upload Image(s)"),
+               br(),
+               fileInput(inputId = "image_file", label = NULL, multiple = TRUE,
+                         accept = c(".JPG", ".JPEG", ".PNG", ".TIF"), buttonLabel = "Upload"),
+               verbatimTextOutput("file_names"),
+               hr(),
+               fluidRow(
+                 style = "background-color: white; padding: 10px; border-radius: 10px; min-height: 10vh; width: 23vh;  overflow-x: scroll;",
+                 DTOutput("table")
+               ),
+               actionButton("delete_image", "Delete selected files"),
+               actionButton("close_upl_button", "Close")
+             ),
+             id = "upload_panel",
+             style = "display: none;",
+             top = "60vh", left = "0vh", width = "26vh"
+           ),
+
+
 
            absolutePanel(
              align = "center",
